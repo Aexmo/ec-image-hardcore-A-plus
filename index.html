@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyrule Strategic Command v13.7 (Terminal Auth)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;900&family=Noto+Sans+SC:wght@300;700;900&family=Ma+Shan+Zheng&display=swap');
+        
+        :root { --sheikah-blue: #00D4FF; --zonai-teal: #00FFC5; --zonai-yellow: #FFD700; --terminal-bg: rgba(8, 10, 12, 0.96); }
+        body { font-family: 'Orbitron', 'PingFang SC', sans-serif; background-color: #050607; color: #E0E0E0; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        .purah-pad { width: 98vw; height: 95vh; background: #1A1614; border: 10px solid #111; border-radius: 4.5rem; position: relative; display: flex; box-shadow: 0 0 150px rgba(0,0,0,1); overflow: hidden; }
+        .game-bg { position: absolute; inset: 0; background-image: linear-gradient(rgba(10, 11, 13, 0.85), rgba(10, 11, 13, 0.98)), url('jwAJMYbrahiyFxa.webp'); background-size: cover; background-position: center; z-index: 1; }
+
+        .sidebar-categories { width: 110px; background: rgba(0,0,0,0.9); border-right: 2px solid var(--zonai-teal); display: flex; flex-direction: column; align-items: center; padding-top: 5rem; gap: 4.5rem; z-index: 20; }
+        .category-icon { width: 75px; height: 75px; border: 2px solid rgba(0, 255, 197, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.4s; color: #333; }
+        .category-icon.active { color: var(--zonai-teal); border-color: var(--zonai-teal); box-shadow: 0 0 40px rgba(0, 255, 197, 0.4); background: rgba(0, 255, 197, 0.1); }
+
+        .main-content { flex-grow: 1; z-index: 10; display: flex; flex-direction: column; position: relative; }
+        .dashboard-view { padding: 1.5rem 2.5rem; display: grid; grid-template-rows: auto auto auto 1fr auto; gap: 0.8rem; height: 100%; overflow: hidden; }
+
+        .header-logo-img { max-height: 70px; width: auto; object-fit: contain; filter: drop-shadow(0 0 10px rgba(0, 255, 197, 0.3)); margin-right: 1.5rem; }
+        .signal-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; background: rgba(0,0,0,0.7); padding: 0.6rem 1.5rem; border-radius: 1rem; border: 1px solid rgba(0, 255, 197, 0.15); flex-shrink: 0; align-items: center; }
+
+        .sheikah-input { background: rgba(0,0,0,0.7); border: 1px solid rgba(0,255,197,0.25); border-radius: 0.8rem; padding: 0.8rem 1.2rem; color: var(--zonai-teal); outline: none; width: 100%; font-size: 1rem; font-family: 'PingFang SC', sans-serif; transition: 0.3s; }
+        .sheikah-input:focus { border-color: var(--zonai-teal); box-shadow: 0 0 15px rgba(0, 255, 197, 0.2); }
+        .webhook-container { position: relative; flex-grow: 1; display: flex; align-items: center; gap: 10px; }
+        .webhook-container .sheikah-input { padding-right: 40px; }
+        .webhook-reveal-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 25px; height: 25px; color: var(--zonai-teal); opacity: 0.5; cursor: pointer; transition: 0.3s; }
+        .webhook-reveal-btn:hover { opacity: 1; filter: drop-shadow(0 0 10px var(--zonai-teal)); }
+
+        .yahaha-strip { width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; overflow: hidden; pointer-events: none; opacity: 0.8; margin: 0; flex-shrink: 0; }
+        .yahaha-img { height: 100%; object-fit: contain; }
+
+        .panel-glass { background: var(--terminal-bg); backdrop-filter: blur(60px); border: 1.5px solid rgba(0, 255, 197, 0.2); border-radius: 2rem; padding: 1.5rem; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        .workspace-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2rem; min-height: 0; }
+        .dropzone-active { background: rgba(0, 255, 197, 0.1) !important; border-color: var(--zonai-teal) !important; transform: scale(1.02); }
+
+        .btn-agent { width: 100%; background: rgba(0, 212, 255, 0.1); border: 2px solid var(--sheikah-blue); color: var(--sheikah-blue); border-radius: 1rem; padding: 0.8rem; font-weight: 900; font-size: 1rem; letter-spacing: 0.1em; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: auto; }
+        .btn-agent:hover:not(:disabled) { background: var(--sheikah-blue); color: #000; box-shadow: 0 0 30px rgba(0, 212, 255, 0.5); }
+        .btn-agent:disabled { border-color: #666; color: #666; cursor: not-allowed; }
+
+        .btn-ultrahand-main { height: 90px; width: 100%; background: #111; border: 3px solid #666; color: #666; border-radius: 2rem; font-size: 2rem; letter-spacing: 0.15em; display: flex; align-items: center; justify-content: center; gap: 3rem; cursor: not-allowed; transition: 0.4s; font-weight: 900; text-transform: uppercase; flex-shrink: 0; }
+        .ready-to-fuse { background: #050505 !important; border-color: var(--zonai-yellow) !important; color: var(--zonai-yellow) !important; cursor: pointer !important; animation: pulse-gold 2s infinite cubic-bezier(0.4, 0, 0.6, 1); }
+        .ready-to-fuse:hover { background: var(--zonai-yellow) !important; color: #000 !important; transform: translateY(-5px); box-shadow: 0 0 120px rgba(255, 215, 0, 0.8) !important; animation: none; }
+        @keyframes pulse-gold { 0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); } 50% { box-shadow: 0 0 60px rgba(255, 215, 0, 0.6); } }
+        .ultrahand-icon-fixed { width: 60px; height: 60px; filter: grayscale(100%) opacity(0.5); transition: 0.4s; }
+        .ready-to-fuse .ultrahand-icon-fixed { filter: drop-shadow(0 0 20px var(--zonai-yellow)) grayscale(0%); animation: hand-breathe 2s infinite ease-in-out; }
+        @keyframes hand-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .link-parallel-img { position: absolute; bottom: -30px; right: -20px; height: 480px; width: 580px; background-image: url('image_01236a.png'); background-size: contain; background-repeat: no-repeat; background-position: bottom right; filter: brightness(1.4) drop-shadow(0 0 25px var(--zonai-teal)); pointer-events: none; z-index: 40; }
+
+        .champions-overlay { position: absolute; inset: 0; background: rgba(5, 6, 7, 0.95); z-index: 2000; display: none; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.8s ease; backdrop-filter: blur(20px); }
+        .champions-overlay.show { display: flex; opacity: 1; }
+        .champions-img { height: 65vh; object-fit: contain; filter: drop-shadow(0 0 40px rgba(0, 212, 255, 0.2)); animation: breathe 5s infinite ease-in-out; transition: all 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes breathe { 0%, 100% { transform: scale(1) translateY(0); opacity: 0.85; } 50% { transform: scale(1.03) translateY(-10px); opacity: 1; filter: drop-shadow(0 0 60px rgba(0, 212, 255, 0.4)); } }
+        .victory-text { position: absolute; text-align: center; font-size: 5rem; font-weight: 900; color: var(--zonai-teal); letter-spacing: 0.2em; text-shadow: 0 0 30px rgba(0, 255, 197, 0.8); transform: scale(0.5); opacity: 0; transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: none; }
+        .champions-overlay.finished .champions-img { transform: scale(1.3); opacity: 0; filter: blur(20px); animation: none; }
+        .champions-overlay.finished .victory-text { transform: scale(1); opacity: 1; }
+        .champions-overlay.finished .progress-container { opacity: 0; }
+        .progress-container { width: 40vw; text-align: center; margin-top: 3rem; transition: 0.5s; }
+        .progress-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; border: 1px solid rgba(0,212,255,0.3); }
+        .progress-bar-fill { height: 100%; width: 0%; background: var(--sheikah-blue); box-shadow: 0 0 15px var(--sheikah-blue); transition: width 1s linear; }
+
+        .quest-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; gap: 1.2rem; height: 100%; }
+        .quest-slot { background: rgba(0,0,0,0.6); border: 1px solid rgba(0, 212, 255, 0.15); border-radius: 1.5rem; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .quest-slot img { width: 100%; height: 100%; object-fit: contain; }
+        .quest-slot.failed { border-color: #ff4444 !important; box-shadow: inset 0 0 30px rgba(255, 0, 0, 0.2); }
+        
+        .slot-actions { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.85); display: flex; padding: 8px; gap: 8px; transform: translateY(100%); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); flex-wrap: wrap; }
+        .quest-slot:hover .slot-actions { transform: translateY(0); z-index: 50; }
+        
+        .action-mini-btn { flex: 1; font-size: 11px; font-weight: 900; border: 1px solid var(--sheikah-blue); color: var(--sheikah-blue); padding: 6px; border-radius: 6px; cursor: pointer; text-align: center; transition: 0.2s; min-width: 30%; }
+        .action-mini-btn:hover { background: var(--sheikah-blue); color: #000; }
+        
+        .status-box-enhanced { background: rgba(0, 20, 25, 0.6); border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 1.5rem; position: relative; padding: 1.5rem; overflow: hidden; box-shadow: inset 0 0 30px rgba(0, 212, 255, 0.1); }
+        .master-sword-container { margin-top: 1rem; width: 100%; height: 200px; display: flex; justify-content: center; align-items: center; overflow: hidden; border-radius: 1.5rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(0, 212, 255, 0.1); }
+        #staticSword { height: 180%; width: auto; object-fit: contain; filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0)); transition: 0.3s; transform-origin: bottom center; }
+        .master-sword-swing { animation: sword-slash-animate 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; }
+        @keyframes sword-slash-animate { 0% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 30px rgba(255, 255, 255, 1)); } 20% { transform: rotate(-20deg) scale(1.1); filter: drop-shadow(0 0 40px rgba(255, 255, 255, 1)); } 50% { transform: rotate(70deg) scale(1.2); filter: drop-shadow(0 0 60px rgba(0, 212, 255, 1)); } 80% { transform: rotate(-10deg) scale(1); filter: drop-shadow(0 0 20px rgba(0, 212, 255, 1)); } 100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 15px rgba(0, 212, 255, 0.3)); } }
+        .btn-split-container { position: relative; height: 100px; width: 100%; cursor: pointer; }
+        .btn-split-part { position: absolute; width: 100%; height: 50%; background: rgba(0, 212, 255, 0.05); border: 2px solid var(--sheikah-blue); color: var(--sheikah-blue); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.7rem; letter-spacing: 0.1em; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 10; }
+        .btn-split-top { top: 0; border-bottom: none; border-radius: 1rem 1rem 0 0; align-items: flex-end; padding-bottom: 8px; }
+        .btn-split-bottom { bottom: 0; border-top: none; border-radius: 0 0 1rem 1rem; align-items: flex-start; padding-top: 8px; }
+        .btn-split-container.slashed .btn-split-top { transform: translateY(-35px) rotate(-4deg); opacity: 0; }
+        .btn-split-container.slashed .btn-split-bottom { transform: translateY(35px) rotate(4deg); opacity: 0; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--zonai-teal); border-radius: 10px; }
+        .error-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(15px); }
+        .error-box { border: 2px solid #ff4444; background: #1a0000; padding: 3rem; border-radius: 2rem; text-align: center; box-shadow: 0 0 80px rgba(255,0,0,0.5); max-width: 600px; }
+
+        .prompt-modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.8); z-index: 4000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
+        .prompt-modal-overlay.show { display: flex; animation: fadeIn 0.3s ease; }
+        .prompt-modal-box { width: 70vw; max-width: 800px; background: #0c1012; border: 2px solid var(--sheikah-blue); border-radius: 1.5rem; padding: 2rem; box-shadow: 0 0 60px rgba(0, 212, 255, 0.2); }
+        .prompt-textarea { width: 100%; height: 300px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,212,255,0.3); color: #ddd; padding: 1rem; font-family: 'PingFang SC', sans-serif; font-size: 0.9rem; line-height: 1.6; border-radius: 1rem; outline: none; resize: none; margin-bottom: 1.5rem; }
+        .prompt-textarea:focus { border-color: var(--zonai-teal); }
+        .modal-btn-group { display: flex; gap: 1rem; justify-content: flex-end; }
+        .modal-btn { padding: 0.8rem 2rem; border-radius: 0.8rem; font-weight: 900; letter-spacing: 0.1em; cursor: pointer; transition: 0.3s; border: 2px solid transparent; }
+        .modal-btn-cancel { border-color: #555; color: #aaa; background: transparent; }
+        .modal-btn-cancel:hover { background: #333; color: #fff; }
+        .modal-btn-confirm { background: var(--sheikah-blue); color: #000; box-shadow: 0 0 20px rgba(0,212,255,0.4); }
+        .modal-btn-confirm:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(0,212,255,0.6); }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body class="custom-scrollbar antialiased">
+
+    <div class="purah-pad">
+        <div class="game-bg"></div>
+
+        <div id="authOverlay" class="absolute inset-0 z-[5000] bg-[#050607]/95 backdrop-blur-xl flex flex-col items-center justify-center transition-opacity duration-500">
+            <img src="3F3F3F2F3F.png" class="h-28 mb-10 filter drop-shadow-[0_0_30px_rgba(0,255,197,0.4)]" onerror="this.style.display='none'">
+            <h2 class="text-4xl text-zonai-teal font-['Orbitron'] tracking-widest mb-3">RESTRICTED ACCESS</h2>
+            <p class="text-gray-400 font-mono text-sm tracking-[0.3em] mb-12 uppercase">Hyrule Strategic Command</p>
+            
+            <input type="password" id="terminalPwd" onkeypress="if(event.key==='Enter') authenticateTerminal()" class="sheikah-input text-center w-80 mb-8 text-2xl tracking-[0.5em] bg-black/60 py-4" placeholder="•••••••">
+            
+            <button onclick="authenticateTerminal()" class="px-12 py-4 bg-transparent border-2 border-zonai-teal text-zonai-teal hover:bg-zonai-teal hover:text-black font-black tracking-[0.2em] rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(0,255,197,0.1)] hover:shadow-[0_0_40px_rgba(0,255,197,0.6)]">DECRYPT / 接入系统</button>
+            <p id="authErrText" class="text-red-500 font-mono text-sm mt-6 opacity-0 transition-opacity">Passcode Incorrect / 验证失败</p>
+        </div>
+
+        <div id="championsOverlay" class="champions-overlay">
+            <img src="BotW_Champions_Artwork.png" class="champions-img" id="heroImg" alt="Champions">
+            <h1 class="victory-text font-[Orbitron]">设计完成!</h1>
+            <div class="progress-container">
+                <div class="progress-bar-bg"><div id="shrineProgressBar" class="progress-bar-fill"></div></div>
+                <p id="shrineStatusText" class="mt-4 text-sheikah-blue/70 font-mono text-sm tracking-widest uppercase">远古学者正在深渊中解析数据结构...</p>
+                <button onclick="abortAgentTask()" class="mt-8 px-6 py-2 border border-red-900/50 text-red-500/50 hover:text-red-400 hover:border-red-500 rounded-full font-mono text-xs tracking-widest transition-all">TERMINATE LINK (强制断开)</button>
+            </div>
+        </div>
+
+        <div id="errorOverlay" class="error-overlay">
+            <div class="error-box">
+                <div class="text-6xl mb-4 animate-bounce">⚠️</div>
+                <h3 id="errorTitle" class="text-3xl text-red-500 font-black mb-4 uppercase tracking-widest">Signal Interrupted</h3>
+                <p id="errorDesc" class="text-red-300 opacity-90 leading-relaxed text-lg font-['PingFang SC']">连接异常，请重试。</p>
+                <button onclick="document.getElementById('errorOverlay').style.display='none'" class="mt-8 px-12 py-3 bg-red-700 hover:bg-red-600 text-white rounded-full font-bold tracking-widest transition-colors shadow-lg">确认 / DISMISS</button>
+            </div>
+        </div>
+
+        <div id="promptModal" class="prompt-modal-overlay">
+            <div class="prompt-modal-box">
+                <h3 class="text-xl text-zonai-teal mb-4 font-black tracking-widest uppercase flex items-center gap-3">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    微调通道 <span id="modalSlotTitle" class="text-sheikah-blue ml-2"></span>
+                </h3>
+                <textarea id="modalTextarea" class="prompt-textarea custom-scrollbar"></textarea>
+                <div class="modal-btn-group">
+                    <button onclick="closeEditModal()" class="modal-btn modal-btn-cancel">取消放弃</button>
+                    <button onclick="saveAndRedrawSingle()" class="modal-btn modal-btn-confirm">保存并触发重绘</button>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-categories">
+            <div id="nav-dash" class="category-icon active" onclick="switchView('dashboard', this)"><svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+            <div id="nav-notes" class="category-icon" onclick="switchView('adventure-log', this)"><svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        </nav>
+
+        <div class="main-content">
+            <section id="view-dashboard" class="dashboard-view">
+                <header class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <img src="3F3F3F2F3F.png" class="header-logo-img" onerror="this.style.display='none'">
+                        <h2 class="text-5xl text-zonai-teal italic game-title tracking-wider">战略大厅</h2>
+                    </div>
+                    <div class="bg-black/70 px-8 py-3 rounded-full border border-zonai-teal/30 text-xs text-sheikah-gold flex items-center gap-4 font-mono">
+                         <div class="w-3 h-3 bg-zonai-teal rounded-full animate-pulse shadow-[0_0_15px_#00FFC5]"></div>
+                         LINK DETECTED | <span id="gameTime">12:00 PM</span>
+                    </div>
+                </header>
+
+                <div class="signal-bar">
+                    <div class="webhook-container">
+                        <label class="text-[10px] text-gray-500 tracking-widest font-mono whitespace-nowrap">AGENT NODE</label>
+                        <input type="password" id="agentWebhookUrl" class="sheikah-input text-sm" placeholder="Agent 智脑 Webhook (Locked)">
+                        <svg onclick="toggleReveal('agentWebhookUrl', this)" class="webhook-reveal-btn" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896z m0 80a368 368 0 1 0 0 736 368 368 0 0 0 0-736z m0 160a208 208 0 1 1 0 416 208 208 0 0 1 0-416z m0 80a128 128 0 1 0 0 256 128 128 0 0 0 0-256z"/><path d="M512 368m-48 0a48 48 0 1 0 96 0 48 48 0 1 0-96 0Z"/><path d="M512 144a368.5 368.5 0 0 0-333.1 213.7C152.1 411.5 128 461.6 128 512s24.1 100.5 50.9 154.3A368.5 368.5 0 0 0 512 880a368.5 368.5 0 0 0 333.1-213.7c26.8-53.8 50.9-103.9 50.9-154.3s-24.1-100.5-50.9-154.3A368.5 368.5 0 0 0 512 144zM512 800c-148.4 0-281.4-87.3-333.1-213.7C152.1 532.5 128 482.4 128 432s24.1-100.5 50.9-154.3A368.5 368.5 0 0 1 512 144a368.5 368.5 0 0 1 333.1 213.7C871.9 411.5 896 461.6 896 512s-24.1 100.5-50.9 154.3A368.5 368.5 0 0 1 512 880z"/></svg>
+                    </div>
+                    <div class="webhook-container">
+                        <label class="text-[10px] text-gray-500 tracking-widest font-mono whitespace-nowrap">KIE NODE</label>
+                        <input type="password" id="webhookUrl" class="sheikah-input text-sm" placeholder="KIE 生图 Webhook (Locked)">
+                        <svg onclick="toggleReveal('webhookUrl', this)" class="webhook-reveal-btn" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896z m0 80a368 368 0 1 0 0 736 368 368 0 0 0 0-736z m0 160a208 208 0 1 1 0 416 208 208 0 0 1 0-416z m0 80a128 128 0 1 0 0 256 128 128 0 0 0 0-256z"/><path d="M512 368m-48 0a48 48 0 1 0 96 0 48 48 0 1 0-96 0Z"/><path d="M512 144a368.5 368.5 0 0 0-333.1 213.7C152.1 411.5 128 461.6 128 512s24.1 100.5 50.9 154.3A368.5 368.5 0 0 0 512 880a368.5 368.5 0 0 0 333.1-213.7c26.8-53.8 50.9-103.9 50.9-154.3s-24.1-100.5-50.9-154.3A368.5 368.5 0 0 0 512 144zM512 800c-148.4 0-281.4-87.3-333.1-213.7C152.1 532.5 128 482.4 128 432s24.1-100.5 50.9-154.3A368.5 368.5 0 0 1 512 144a368.5 368.5 0 0 1 333.1 213.7C871.9 411.5 896 461.6 896 512s-24.1 100.5-50.9 154.3A368.5 368.5 0 0 1 512 880z"/></svg>
+                    </div>
+                </div>
+
+                <div class="yahaha-strip"><img src="TWW_Koroks_Artwork.png" class="yahaha-img" onerror="this.style.display='none'"></div>
+
+                <div class="workspace-grid">
+                    <div class="panel-glass">
+                        <h3 class="text-sm text-zonai-teal mb-3 italic game-title uppercase tracking-widest">1. Product Intelligence</h3>
+                        
+                        <select id="targetMarket" class="sheikah-input mb-3 text-sm font-mono font-bold custom-scrollbar" style="color: var(--zonai-yellow); border-color: rgba(255,215,0,0.3); background-color: rgba(0,0,0,0.8);" onchange="saveAppState()">
+                            <optgroup label="🌎 北美及拉美战区 (Americas)">
+                                <option value='{"market":"美国", "lang":"English"}'>🇺🇸 美国 (US / English)</option>
+                                <option value='{"market":"加拿大", "lang":"English"}'>🇨🇦 加拿大 (CA / English)</option>
+                                <option value='{"market":"墨西哥", "lang":"Español"}'>🇲🇽 墨西哥 (MX / Español)</option>
+                            </optgroup>
+                            <optgroup label="🇪🇺 欧洲核心战区 (Europe)">
+                                <option value='{"market":"英国", "lang":"English"}'>🇬🇧 英国 (UK / English)</option>
+                                <option value='{"market":"德国", "lang":"Deutsch"}'>🇩🇪 德国 (DE / Deutsch)</option>
+                                <option value='{"market":"法国", "lang":"Français"}'>🇫🇷 法国 (FR / Français)</option>
+                                <option value='{"market":"意大利", "lang":"Italiano"}'>🇮🇹 意大利 (IT / Italiano)</option>
+                                <option value='{"market":"西班牙", "lang":"Español"}'>🇪🇸 西班牙 (ES / Español)</option>
+                            </optgroup>
+                            <optgroup label="🌏 亚太及华语战区 (Asia & CN)">
+                                <option value='{"market":"日本", "lang":"日本語"}'>🇯🇵 日本 (JP / 日本語)</option>
+                                <option value='{"market":"韩国", "lang":"한국어"}'>🇰🇷 韩国 (KR / 한국어)</option>
+                                <option value='{"market":"中国大陆", "lang":"简体中文"}'>🇨🇳 中国大陆 (CN / 简体中文)</option>
+                                <option value='{"market":"港澳台及海外华侨", "lang":"繁体中文"}'>🇭🇰 港澳台 (HK&TW / 繁體中文)</option>
+                            </optgroup>
+                            <optgroup label="🐪 中东新兴战区 (Middle East)">
+                                <option value='{"market":"中东地区", "lang":"العربية (Arabic)"}'>🇦🇪 中东地区 (Middle East / العربية)</option>
+                            </optgroup>
+                            <optgroup label="🌐 全球战略 (Global)">
+                                <option value='{"market":"全球通用(偏欧美审美)", "lang":"English"}'>🌍 全球通用 (Global / English)</option>
+                            </optgroup>
+                        </select>
+
+                        <input type="text" id="prodName" class="sheikah-input mb-3 text-sm" placeholder="产品名称及物理特征..." oninput="saveAppState()">
+                        <textarea id="prodDesc" class="flex-grow sheikah-input resize-none leading-relaxed text-sm mb-3" placeholder="详细核心卖点描述..." oninput="saveAppState()"></textarea>
+                        <button onclick="summonAgent()" id="agentBtn" class="btn-agent">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 12 2.1 7.1"/><path d="M12 12l9.9 4.9"/></svg>
+                            SUMMON AGENT (一键构思)
+                        </button>
+                    </div>
+
+                    <div class="panel-glass relative" id="dropZoneContainer">
+                        <h3 class="text-sm text-zonai-teal mb-3 italic game-title uppercase tracking-widest">2. Material Carrier</h3>
+                        <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
+                        <label for="fileInput" id="dropZone" class="w-full h-20 border-2 border-dashed border-zonai-teal/30 rounded-xl flex flex-col items-center justify-center cursor-pointer mb-3 hover:bg-zonai-teal/5 transition">
+                            <div class="text-2xl mb-1">💎</div>
+                            <p class="text-[9px] text-gray-400 tracking-widest uppercase font-mono">Drop Assets Here</p>
+                        </label>
+                        <div id="materialPreviewGrid" class="grid grid-cols-3 gap-2 overflow-y-auto custom-scrollbar flex-grow content-start"></div>
+                    </div>
+
+                    <div class="panel-glass">
+                        <h3 class="text-sm text-zonai-teal mb-3 italic game-title uppercase tracking-widest">3. Fuse SOP Commands</h3>
+                        <textarea id="sopText" class="flex-grow sheikah-input border-none bg-black/40 resize-none leading-relaxed text-xs font-mono" placeholder="等待 Agent 注入神谕，或手动修改..." oninput="saveAppState()"></textarea>
+                    </div>
+                </div>
+
+                <div class="relative w-full mt-2">
+                    <button onclick="triggerGeneration()" id="mainBtn" class="btn-ultrahand-main" disabled>
+                        <img src="totk-what-were-your-favorite-ultrahand-creations-v0-c6lyir7oo06e1.png" class="ultrahand-icon-fixed" onerror="this.style.display='none'">
+                        <span>究极手一键调和</span>
+                    </button>
+                    <div class="link-parallel-img"></div>
+                </div>
+            </section>
+
+            <section id="view-adventure-log" class="hidden h-full flex p-10 gap-10 overflow-hidden relative">
+                <div class="w-[380px] flex flex-col relative z-20">
+                    <header class="mb-6">
+                        <h2 class="text-6xl text-sheikah-blue italic game-title tracking-widest">勇士上路吧</h2>
+                        <span class="text-[10px] text-sheikah-blue/40 block mt-4 uppercase tracking-[0.4em] font-mono">Divine Quest Journal</span>
+                    </header>
+                    <div id="progressStatus" class="flex-grow status-box-enhanced font-mono text-xs space-y-4">
+                        <div class="text-sheikah-blue flex items-center gap-2"><div class="w-2 h-2 bg-sheikah-blue animate-ping"></div><span>SYSTEM STATUS: CONNECTED</span></div>
+                        <div id="logContent" class="text-sheikah-blue/60 leading-relaxed font-['PingFang SC']">等待左纳乌信号输入...</div>
+                    </div>
+                    <div class="master-sword-container"><img src="Weapon_Sword_070.png" id="staticSword" onerror="this.style.display='none'"></div>
+                    <div class="mt-4">
+                        <div onclick="batchDownloadAll()" id="batchBtnContainer" class="btn-split-container">
+                            <div class="btn-split-part btn-split-top font-mono">BATCH EXTRACT</div>
+                            <div class="btn-split-part btn-split-bottom font-mono">AVAILABLE MATERIALS</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-grow z-10">
+                    <div class="quest-grid" id="mainQuestGrid">
+                        <div class="quest-slot standby" id="slot-0"><div class="opacity-20 text-sheikah-blue italic text-xs font-mono">SLOT_0 Standby</div></div>
+                        <div class="quest-slot standby" id="slot-1"><div class="opacity-20 text-sheikah-blue italic text-xs font-mono">SLOT_1 Standby</div></div>
+                        <div class="quest-slot standby" id="slot-2"><div class="opacity-20 text-sheikah-blue italic text-xs font-mono">SLOT_2 Standby</div></div>
+                        <div class="quest-slot standby" id="slot-3"><div class="opacity-20 text-sheikah-blue italic text-xs font-mono">SLOT_3 Standby</div></div>
+                        <div class="quest-slot standby" id="slot-4"><div class="opacity-20 text-sheikah-blue italic text-xs font-mono">SLOT_4 Standby</div></div>
+                        <div class="quest-slot standby" id="slot-5"><div class="opacity-20 text-sheikah-blue italic text-xs font-mono">SLOT_5 Standby</div></div>
+                        <div class="quest-slot standby" id="slot-6"><div class="opacity-20 text-sheikah-blue italic text-xs font-mono">SLOT_6 Standby</div></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // 🔴 底层机密常量区
+        const SECRET_AGENT_URL = "https://zcaaron7.app.n8n.cloud/webhook/design-comment-v1";
+        const SECRET_KIE_URL = "https://zcaaron7.app.n8n.cloud/webhook/picture-progress-v2";
+        const SYSTEM_PWD = "3123119";
+        const OVERRIDE_PWD = "7758258";
+
+        const firebaseConfig = { apiKey: "AIzaSyDIhprsI0959enUNvqHRn6jqdACHGQE7Oo", authDomain: "sapient-hub-485206-a1.firebaseapp.com", databaseURL: "https://sapient-hub-485206-a1-default-rtdb.firebaseio.com", projectId: "sapient-hub-485206-a1", storageBucket: "sapient-hub-485206-a1.firebasestorage.app", messagingSenderId: "1016880074231", appId: "1:1016880074231:web:135881dd3ef1989f7472f2", measurementId: "G-5GNP4ET5JB" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+
+        const playZeldaSound = (type) => {
+            Tone.start(); const now = Tone.now();
+            if (type === 'victory') { synth.triggerAttackRelease("G4", "16n", now); synth.triggerAttackRelease("B4", "16n", now + 0.1); synth.triggerAttackRelease("D5", "16n", now + 0.2); synth.triggerAttackRelease("F5", "16n", now + 0.3); synth.triggerAttackRelease("D5", "16n", now + 0.4); synth.triggerAttackRelease("B4", "16n", now + 0.5); synth.triggerAttackRelease("G5", "4n", now + 0.6); } 
+            else if (type === 'click') { synth.triggerAttackRelease(["D4", "G4", "D5"], "12n"); }
+            else if (type === 'error') { synth.triggerAttackRelease(["C3", "C#3"], "2n"); }
+            else if (type === 'slash') { synth.triggerAttackRelease("G4", "32n", now); synth.triggerAttackRelease("C5", "32n", now + 0.03); synth.triggerAttackRelease("G5", "32n", now + 0.06); }
+        };
+
+        function triggerError(title, desc) { playZeldaSound('error'); document.getElementById('errorTitle').innerText = title; document.getElementById('errorDesc').innerHTML = desc; document.getElementById('errorOverlay').style.display = 'flex'; }
+        
+        // 🔴 修改：系统接入认证系统
+        function authenticateTerminal() {
+            const input = document.getElementById('terminalPwd').value;
+            if(input === SYSTEM_PWD) {
+                playZeldaSound('victory');
+                localStorage.setItem('hyrule_terminal_auth', 'GRANTED');
+                document.getElementById('authOverlay').style.opacity = '0';
+                setTimeout(() => { document.getElementById('authOverlay').style.display = 'none'; }, 500);
+                fillUrls();
+                loadAppState(); // 解锁后加载记忆
+            } else {
+                playZeldaSound('error');
+                const err = document.getElementById('authErrText');
+                err.style.opacity = '1';
+                document.getElementById('terminalPwd').value = '';
+                setTimeout(() => err.style.opacity = '0', 2000);
+            }
+        }
+
+        function fillUrls() {
+            document.getElementById('agentWebhookUrl').value = SECRET_AGENT_URL;
+            document.getElementById('webhookUrl').value = SECRET_KIE_URL;
+        }
+
+        // 🔴 页面加载初始化
+        window.onload = () => {
+            if (localStorage.getItem('hyrule_terminal_auth') === 'GRANTED') {
+                document.getElementById('authOverlay').style.display = 'none';
+                fillUrls();
+                loadAppState();
+            } else {
+                document.getElementById('authOverlay').style.display = 'flex';
+            }
+        };
+
+        function toggleReveal(inputId, btnEl) { 
+            playZeldaSound('click'); 
+            const input = document.getElementById(inputId); 
+            if (input.type === 'password') { 
+                const password = prompt("身份认证："); 
+                if (password === SYSTEM_PWD) { 
+                    input.type = 'text'; btnEl.style.color = '#FFD700'; btnEl.style.opacity = '1'; 
+                } else if (password !== null) { 
+                    playZeldaSound('error'); alert("⚠️ 认证失败"); 
+                } 
+            } else { 
+                input.type = 'password'; btnEl.style.color = ''; btnEl.style.opacity = ''; 
+            } 
+        }
+
+        let imageSlots = Array(7).fill(null);
+        let globalMaterials = []; 
+        let activeAgentTask = null; 
+        let activeKieTasks = []; 
+
+        function saveAppState() {
+            const state = { targetMarket: document.getElementById('targetMarket').value, prodName: document.getElementById('prodName').value, prodDesc: document.getElementById('prodDesc').value, sopText: document.getElementById('sopText').value, imageSlots: imageSlots, activeAgentTask: activeAgentTask, activeKieTasks: activeKieTasks };
+            localStorage.setItem('hyrule_state_v13', JSON.stringify(state));
+            const kieBtn = document.getElementById('mainBtn');
+            if (document.getElementById('sopText').value.trim() !== '') { kieBtn.disabled = false; kieBtn.classList.add('ready-to-fuse'); } else { kieBtn.disabled = true; kieBtn.classList.remove('ready-to-fuse'); }
+        }
+
+        function loadAppState() {
+            const savedStr = localStorage.getItem('hyrule_state_v13'); if (!savedStr) return;
+            try {
+                const state = JSON.parse(savedStr);
+                if (state.targetMarket) document.getElementById('targetMarket').value = state.targetMarket;
+                if (state.prodName) document.getElementById('prodName').value = state.prodName;
+                if (state.prodDesc) document.getElementById('prodDesc').value = state.prodDesc;
+                if (state.sopText) { document.getElementById('sopText').value = state.sopText; const kieBtn = document.getElementById('mainBtn'); kieBtn.disabled = false; kieBtn.classList.add('ready-to-fuse'); }
+                if (state.imageSlots) { imageSlots = state.imageSlots; imageSlots.forEach((img, idx) => { if (img) renderSlot(idx); }); }
+                if (state.activeAgentTask) { activeAgentTask = state.activeAgentTask; resumeAgentListener(activeAgentTask); }
+                if (state.activeKieTasks && state.activeKieTasks.length > 0) { activeKieTasks = state.activeKieTasks; switchView('adventure-log', document.getElementById('nav-notes')); activeKieTasks.forEach(task => { resumeKieListener(task.slot, task.taskId); }); }
+            } catch (e) { console.error("读取记忆失败", e); }
+        }
+
+        function switchView(viewName, el) { playZeldaSound('click'); document.getElementById('view-dashboard').classList.add('hidden'); document.getElementById('view-adventure-log').classList.add('hidden'); if(viewName === 'dashboard') document.getElementById('view-dashboard').classList.remove('hidden'); else document.getElementById('view-adventure-log').classList.remove('hidden'); document.querySelectorAll('.category-icon').forEach(i => i.classList.remove('active')); el.classList.add('active'); }
+
+        const dropZone = document.getElementById('dropZone'); const fileInput = document.getElementById('fileInput');
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, preventDefaults, false)); function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+        ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.add('dropzone-active'), false)); ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.remove('dropzone-active'), false));
+        dropZone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files), false); fileInput.addEventListener('change', function() { handleFiles(this.files); this.value = ''; });
+
+        function handleFiles(files) {
+            const newFiles = Array.from(files).filter(f => f.type.startsWith('image/')); if(newFiles.length === 0) return;
+            if(globalMaterials.length + newFiles.length > 8) { triggerError('FULL', '最多支持 8 张参考图！'); return; } playZeldaSound('click');
+            newFiles.forEach(file => { const reader = new FileReader(); reader.onload = (e) => { globalMaterials.push({ id: 'mat_' + Math.random().toString(36).substr(2, 9), base64: e.target.result.split(',')[1], preview: e.target.result }); renderMaterialGrid(); }; reader.readAsDataURL(file); });
+        }
+        function removeMaterial(id) { playZeldaSound('click'); globalMaterials = globalMaterials.filter(m => m.id !== id); renderMaterialGrid(); }
+        function renderMaterialGrid() { const grid = document.getElementById('materialPreviewGrid'); grid.innerHTML = ''; globalMaterials.forEach(m => { const div = document.createElement('div'); div.className = 'relative group aspect-square rounded-xl border border-zonai-teal/30 bg-black/50 overflow-hidden flex items-center justify-center'; div.innerHTML = `<img src="${m.preview}" class="w-full h-full object-cover opacity-90 transition group-hover:opacity-40"><button onclick="removeMaterial('${m.id}')" class="absolute top-1 right-1 bg-red-600/90 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs z-10">✕</button>`; grid.appendChild(div); }); }
+
+        let progressInterval = null;
+        
+        function abortAgentTask() {
+            playZeldaSound('click');
+            const pwd = prompt("警告：请确认 AGENT 运行已失败或卡死后再退回主页。\n请输入强制解除密码：");
+            if (pwd === OVERRIDE_PWD) {
+                playZeldaSound('error'); 
+                if(progressInterval) clearInterval(progressInterval);
+                document.getElementById('championsOverlay').classList.remove('show');
+                if (activeAgentTask) { db.ref('agent_tasks/' + activeAgentTask).off(); activeAgentTask = null; }
+                saveAppState(); alert("通信已强制切断！记忆死锁已清除，系统安全回退至战略大厅。");
+            } else if (pwd !== null) { alert("密码错误，拒绝切断精神链接！"); }
+        }
+
+        function resumeAgentListener(taskId) {
+            const overlay = document.getElementById('championsOverlay'); const progressBar = document.getElementById('shrineProgressBar'); const statusText = document.getElementById('shrineStatusText'); const kieBtn = document.getElementById('mainBtn');
+            overlay.classList.add('show'); overlay.classList.remove('finished'); progressBar.style.width = '0%'; statusText.innerText = "重新接驳远古数据流..."; 
+            let progress = 0; clearInterval(progressInterval);
+            progressInterval = setInterval(() => { if(progress < 99) { progress++; progressBar.style.width = progress + '%'; } }, 6000); 
+            
+            const ref = db.ref('agent_tasks/' + taskId);
+            ref.on('value', (snapshot) => {
+                const data = snapshot.val(); if (!data) return;
+                if (data.status === 'completed' && data.result) {
+                    clearInterval(progressInterval); progressBar.style.width = '100%'; document.getElementById('sopText').value = data.result; 
+                    activeAgentTask = null; saveAppState(); 
+                    playZeldaSound('victory'); overlay.classList.add('finished');
+                    setTimeout(() => { overlay.classList.remove('show', 'finished'); progressBar.style.width = '0%'; kieBtn.disabled = false; kieBtn.classList.add('ready-to-fuse'); }, 2500); ref.off();
+                } else if (data.status === 'failed' || data.status === 'error') {
+                    clearInterval(progressInterval); overlay.classList.remove('show'); activeAgentTask = null; saveAppState(); 
+                    triggerError('AGENT FAILED', '远端智脑运行出错，任务终止。'); ref.off();
+                }
+            });
+        }
+
+        async function summonAgent() {
+            const agentUrl = document.getElementById('agentWebhookUrl').value; const name = document.getElementById('prodName').value; const desc = document.getElementById('prodDesc').value; const marketData = JSON.parse(document.getElementById('targetMarket').value);
+            if (!agentUrl || !name || !desc || globalMaterials.length === 0) { triggerError('MISSING INTEL', '情报不足！'); return; }
+            playZeldaSound('click');
+            
+            const agentTaskId = 'agent_' + Date.now(); activeAgentTask = agentTaskId; saveAppState(); resumeAgentListener(agentTaskId);
+
+            try {
+                const payloadImages = globalMaterials.map(m => m.base64); const payload = { product_name: name, product_desc: desc, images: payloadImages, agent_task_id: agentTaskId, target_market: marketData.market, target_lang: marketData.lang };
+                const response = await fetch(agentUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`HTTP 错误: ${response.status}`);
+            } catch (err) { clearInterval(progressInterval); document.getElementById('championsOverlay').classList.remove('show'); activeAgentTask = null; saveAppState(); db.ref('agent_tasks/' + agentTaskId).off(); triggerError('NETWORK ERROR', '无法连接到远端智脑节点。'); }
+        }
+
+        let currentEditingSlotIdx = -1;
+        const slotTitles = ['【主图】', '【卖点图1】', '【卖点图2】', '【卖点图3】', '【卖点图4】', '【卖点图5】', '【卖点图6】'];
+
+        function openEditModal(idx) {
+            playZeldaSound('click'); const fullText = document.getElementById('sopText').value;
+            if (!fullText) { triggerError('NO SOP DATA', '全局文本框中没有发现神谕文案，无法提取单图指令。'); return; }
+            currentEditingSlotIdx = idx; document.getElementById('modalSlotTitle').innerText = `[ ${idx === 0 ? '主图' : '卖点图 ' + idx} ]`;
+            const targetTitle = slotTitles[idx]; const nextTitle = idx < 6 ? slotTitles[idx + 1] : null;
+            let startIdx = fullText.indexOf(targetTitle); if (startIdx === -1) { triggerError('PARSE ERROR', `在全文中找不到标签 ${targetTitle}，切割失败！`); return; }
+            let endIdx = nextTitle ? fullText.indexOf(nextTitle) : fullText.length; if (endIdx === -1) endIdx = fullText.length; 
+            const extractedBlock = fullText.substring(startIdx, endIdx).trim(); document.getElementById('modalTextarea').value = extractedBlock; document.getElementById('promptModal').classList.add('show');
+        }
+
+        function closeEditModal() { playZeldaSound('click'); document.getElementById('promptModal').classList.remove('show'); }
+
+        function saveAndRedrawSingle() {
+            playZeldaSound('click'); const editedText = document.getElementById('modalTextarea').value; let fullText = document.getElementById('sopText').value;
+            const targetTitle = slotTitles[currentEditingSlotIdx]; const nextTitle = currentEditingSlotIdx < 6 ? slotTitles[currentEditingSlotIdx + 1] : null;
+            let startIdx = fullText.indexOf(targetTitle); let endIdx = nextTitle ? fullText.indexOf(nextTitle) : fullText.length; if (endIdx === -1) endIdx = fullText.length;
+            const newFullText = fullText.substring(0, startIdx) + editedText + "\n\n" + fullText.substring(endIdx); document.getElementById('sopText').value = newFullText;
+            saveAppState(); closeEditModal(); triggerGeneration(currentEditingSlotIdx);
+        }
+
+        async function fetchImageBlobBypassCORS(url) {
+            const cleanUrl = url.replace(/^https?:\/\//, ''); const proxies = [`https://wsrv.nl/?url=${encodeURIComponent(cleanUrl)}&output=jpg`, `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`];
+            for (let proxyUrl of proxies) { try { const res = await fetch(proxyUrl); if (res.ok) return await res.blob(); } catch (e) {} } throw new Error("CORS Blocked");
+        }
+
+        async function performMasterSwordSlash() { const sword = document.getElementById('staticSword'); playZeldaSound('slash'); sword.classList.remove('master-sword-swing'); void sword.offsetWidth; sword.classList.add('master-sword-swing'); return new Promise(r => setTimeout(() => r(), 500)); }
+
+        function resumeKieListener(slotIdx, taskId) {
+            const slot = document.getElementById(`slot-${slotIdx}`); slot.classList.remove('failed'); slot.classList.add('standby'); slot.innerHTML = `<div class="animate-pulse text-sheikah-blue italic text-xs tracking-widest font-mono">RE-SYNCING...</div>`;
+            const ref = db.ref('hyrule_tasks/' + taskId);
+            ref.on('value', (snapshot) => {
+                const data = snapshot.val(); if (!data) return;
+                if (data.status === 'completed' && data.imageUrl) {
+                    imageSlots[slotIdx] = { url: data.imageUrl, id: taskId }; activeKieTasks = activeKieTasks.filter(t => t.slot !== slotIdx); saveAppState(); 
+                    renderSlot(slotIdx); slot.classList.remove('failed'); playZeldaSound('success'); ref.off();
+                } else if (data.status === 'failed') {
+                    activeKieTasks = activeKieTasks.filter(t => t.slot !== slotIdx); saveAppState();
+                    slot.classList.remove('standby'); slot.classList.add('failed'); 
+                    slot.innerHTML = `<div class="text-red-500 font-bold text-xs font-mono uppercase z-10">Gen Failed</div><div class="slot-actions"><div class="action-mini-btn" onclick="openEditModal(${slotIdx})">EDIT PROMPT</div><div class="action-mini-btn" onclick="triggerGeneration(${slotIdx})">RETRY</div></div>`; playZeldaSound('error'); ref.off();
+                }
+            });
+        }
+
+        async function triggerGeneration(targetIdx = null) {
+            const url = document.getElementById('webhookUrl').value; const text = document.getElementById('sopText').value;
+            if (!url || !text || globalMaterials.length === 0) { triggerError('CONNECTION REFUSED', '要素不全。如果刚刷新了网页，请重新拖入参考图片。'); return; }
+            playZeldaSound('click'); const btn = document.getElementById('mainBtn'); btn.disabled = true; btn.classList.remove('ready-to-fuse'); btn.innerHTML = `RESONATING...`;
+            switchView('adventure-log', document.getElementById('nav-notes')); document.getElementById('logContent').innerHTML = "究极手共鸣中... 正在向云端派发作画任务。";
+
+            let generatedTasks = []; const batchId = Date.now();
+            if(targetIdx === null) {
+                for(let i=0; i<7; i++) { imageSlots[i] = null; const taskId = `task_${batchId}_${i}`; generatedTasks.push({ slot: i, taskId: taskId }); activeKieTasks.push({ slot: i, taskId: taskId }); resumeKieListener(i, taskId); }
+            } else { const taskId = `task_${batchId}_${targetIdx}`; generatedTasks.push({ slot: targetIdx, taskId: taskId }); activeKieTasks.push({ slot: targetIdx, taskId: taskId }); resumeKieListener(targetIdx, taskId); }
+            saveAppState(); 
+
+            try {
+                const payloadImages = globalMaterials.map(m => m.base64); const payload = { sop_text: text, local_images_base64: payloadImages, redraw_index: targetIdx, firebase_tasks: generatedTasks };
+                await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                btn.disabled = false; btn.innerHTML = `<img src="totk-what-were-your-favorite-ultrahand-creations-v0-c6lyir7oo06e1.png" class="ultrahand-icon-fixed"><span>究极手一键调和</span>`; document.getElementById('logContent').innerHTML = "任务已下发。Firebase 实时监听网络中...";
+            } catch (error) { 
+                btn.disabled = false; btn.innerHTML = `ERROR - RETRY`; triggerError('GENERATION FAILED', 'KIE 节点无响应。'); 
+                generatedTasks.forEach(task => { db.ref('hyrule_tasks/' + task.taskId).off(); activeKieTasks = activeKieTasks.filter(t => t.taskId !== task.taskId); }); saveAppState();
+            }
+        }
+
+        function renderSlot(idx) {
+            const slot = document.getElementById(`slot-${idx}`); slot.classList.remove('standby'); const data = imageSlots[idx];
+            slot.innerHTML = `<img src="${data.url}"><div class="slot-actions"><div class="action-mini-btn" onclick="openEditModal(${idx})">EDIT</div><div class="action-mini-btn" onclick="triggerGeneration(${idx})">REDRAW</div><div class="action-mini-btn" onclick="downloadSingle(${idx})">⬇️</div></div>`;
+        }
+
+        async function downloadSingle(idx) { const img = imageSlots[idx]; if(!img) return; await performMasterSwordSlash(); try { const blob = await fetchImageBlobBypassCORS(img.url); const blobUrl = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = blobUrl; a.download = `artifact_${idx}_${Date.now()}.jpg`; document.body.appendChild(a); a.click(); setTimeout(() => { window.URL.revokeObjectURL(blobUrl); document.body.removeChild(a); }, 500); } catch (e) { window.open(img.url, '_blank'); } }
+        async function batchDownloadAll() { const container = document.getElementById('batchBtnContainer'); const availableSlots = imageSlots.map((img, i) => img ? {img, i} : null).filter(s => s !== null); if(availableSlots.length === 0) { playZeldaSound('error'); return; } await performMasterSwordSlash(); container.classList.add('slashed'); try { const zip = new JSZip(); const promises = availableSlots.map(async (slotItem) => { const blob = await fetchImageBlobBypassCORS(slotItem.img.url); zip.file(`artifact_${slotItem.i}.jpg`, blob); }); await Promise.all(promises); const content = await zip.generateAsync({type:"blob"}); const zipUrl = window.URL.createObjectURL(content); const a = document.createElement('a'); a.style.display = 'none'; a.href = zipUrl; a.download = `Hyrule_Package_${Date.now()}.zip`; document.body.appendChild(a); a.click(); setTimeout(() => { window.URL.revokeObjectURL(zipUrl); document.body.removeChild(a); }, 500); } catch (e) { triggerError('ARCHIVE FAILED', '打包失败。'); } setTimeout(() => container.classList.remove('slashed'), 800); }
+        setInterval(() => { document.getElementById('gameTime').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }, 1000);
+
+    </script>
+</body>
+</html>
