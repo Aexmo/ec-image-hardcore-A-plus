@@ -480,24 +480,40 @@
             } catch (err) { clearInterval(progressInterval); document.getElementById('championsOverlay').classList.remove('show'); activeAgentTask = null; saveAppState(); db.ref('agent_tasks/' + agentTaskId).off(); triggerError('NETWORK ERROR', '无法连接到远端智脑节点。'); }
         }
 
-        // 🔴 核心新增：动态获取当前任务所需的所有 Slot Titles (严格匹配你的格式)
-        function getCurrentSlotTitles() {
-            const scope = document.getElementById('designScope').value;
-            let titles = [];
-            if (!scope) return titles;
+        // ---------------------------------------------------------
+// 🔴 精准修复：动态获取当前任务所需的所有 Slot Titles
+// 🔴 必须完全匹配后端 Switch 路由表的 Condition 文本！
+// ---------------------------------------------------------
+function getCurrentSlotTitles() {
+    const scope = document.getElementById('designScope').value;
+    let titles = [];
+    if (!scope) return titles;
 
-            if (scope.includes('main')) {
-                titles.push('【主图】');
-                for(let i=1; i<=6; i++) titles.push(`【卖点图${i}】`);
-            }
-            if (scope.includes('old_aplus')) {
-                for(let i=1; i<=5; i++) titles.push(`【老A+${i}】`);
-            }
-            if (scope.includes('premium_aplus')) {
-                for(let i=1; i<=5; i++) titles.push(`【高级A+${i}】`);
-            }
-            return titles;
-        }
+    // 1. 主图与卖点图：保持简单锚点
+    if (scope.includes('main')) {
+        titles.push('【主图】');
+        for(let i=1; i<=6; i++) titles.push(`【卖点图${i}】`);
+    }
+
+    // 2. 老版 foundation A+：必须匹配后端 Switch 节点设置的路由文本
+    if (scope.includes('old_aplus')) {
+        titles.push('【老版A+模块1: 顶部品牌画册横幅 (Hero Banner)】');
+        titles.push('【老版A+模块2: 隐性痛点的高级拆解】');
+        titles.push('【老版A+模块3: Cosmo 终极生活方式共鸣】');
+        titles.push('【老版A+模块4: 空间环境重构与生活方式】'); // 严格匹配 Switch 节点图片 6 设置的文本
+        titles.push('【老版A+模块5: Rufus FAQ 极简收尾】');
+    }
+
+    // 3. 高级 Premium A+：必须匹配后端 Switch 节点设置的路由文本
+    if (scope.includes('premium_aplus')) {
+        titles.push('【高级A+模块1: 全宽幅沉浸式海报 (Editorial Hero)】');
+        titles.push('【高级A+模块2: Hormozi 极致价值感知特写】');
+        titles.push('【高级A+模块3: Cosmo 终极生活方式共鸣】');
+        titles.push('【高级A+模块4: 空间环境重构 (Environmental Storytelling)】');
+        titles.push('【高级A+模块5: 品牌心智收尾 (The Legacy)】');
+    }
+    return titles;
+}
 
         // 🔴 核心新增：重构图文并排布局函数
         function handleScopeChange() {
