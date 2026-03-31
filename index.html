@@ -212,9 +212,12 @@
                 </div>
 
                 <div class="modal-btn-group mt-2">
-                    <button onclick="closeInpaintModal()" class="modal-btn modal-btn-cancel">取消封印</button>
-                    <button onclick="sendInpaintTask()" class="modal-btn bg-zonai-yellow text-black hover:shadow-[0_0_40px_rgba(255,215,0,0.6)] font-black border-none">⚡ 锁定并重绘</button>
-                </div>
+    <button onclick="closeInpaintModal()" class="modal-btn modal-btn-cancel">取消封印</button>
+    
+    <button onclick="sendInpaintTask()" class="modal-btn border-2 border-[#FFD700] bg-black/60 text-[#FF9900] hover:bg-[#FFD700] hover:text-black font-black tracking-widest uppercase transition-all duration-300 animate-[pulse-gold_2s_infinite] flex items-center gap-2 shadow-[0_0_20px_rgba(255,215,0,0.3)]">
+        <span class="text-red-500 drop-shadow-md text-lg">⚡</span> LOCK & INPAINT
+    </button>
+    </div>
             </div>
         </div>
 
@@ -760,13 +763,28 @@ function renderSlot(idx) {
             const displayUrl = data.history ? data.history[data.currentIndex] : data.url;
 
             slot.innerHTML = `
-                <img src="${displayUrl}">
-                <div class="slot-actions">
-                    <div class="action-mini-btn" onclick="openEditModal(${idx})">EDIT</div>
-                    <div class="action-mini-btn font-bold text-zonai-yellow border-zonai-yellow/50" onclick="openInpaintModal(${idx})">🖌️ 精修</div>
-                    <div class="action-mini-btn" onclick="triggerGeneration(${idx})">REDRAW</div>
-                    <div class="action-mini-btn" onclick="downloadSingle(${idx})">⬇️</div>
-                </div>`;
+        <img src="${displayUrl}">
+        <div class="slot-actions" style="flex-direction: column; gap: 8px; padding: 10px;">
+            <div class="flex items-center justify-between gap-2 w-full">
+                <button onclick="openEditModal(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                    EDIT
+                </button>
+                <button onclick="openInpaintModal(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                    INPAINT
+                </button>
+                <button onclick="triggerGeneration(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                    REDRAW
+                </button>
+            </div>
+            <div class="w-full">
+                <button onclick="downloadSingle(${idx})" class="w-full py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    DOWNLOAD
+                </button>
+            </div>
+        </div>`;
         }
 
         async function downloadSingle(idx) { const img = imageSlots[idx]; if(!img) return; await performMasterSwordSlash(); try { const blob = await fetchImageBlobBypassCORS(img.url); const blobUrl = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = blobUrl; a.download = `artifact_${idx}_${Date.now()}.jpg`; document.body.appendChild(a); a.click(); setTimeout(() => { window.URL.revokeObjectURL(blobUrl); document.body.removeChild(a); }, 500); } catch (e) { window.open(img.url, '_blank'); } }
