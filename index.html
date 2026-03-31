@@ -808,20 +808,27 @@ function renderSlot(idx) {
         }
 
 function loadInpaintImage(url) {
-            // 🚀 核心破解：使用跨域代理将图片“洗白”，加上允许跨域的通行证
-            const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+            console.log("🔍 [究极手] 正在尝试拉取底图:", url);
             
+            // 🚀 终极破解：使用全球极其稳定的专用图片跨域代理 (wsrv.nl)
+            const proxyUrl = "https://wsrv.nl/?url=" + encodeURIComponent(url);
+            
+            // 确保安全锁开启
+            inpaintImg.crossOrigin = "anonymous";
             inpaintImg.src = proxyUrl;
+            
             inpaintImg.onload = () => {
+                console.log("✅ [究极手] 底图洗白并加载成功！");
+                // 只有图片真正加载出来，画布才会被撑开
                 inpaintCanvas.width = inpaintImg.clientWidth;
                 inpaintCanvas.height = inpaintImg.clientHeight;
                 clearCanvas(); 
             };
             
-            // 增加错误处理，防止代理偶尔抽风
             inpaintImg.onerror = () => {
-                console.error("跨域代理加载失败，尝试备用代理...");
-                inpaintImg.src = "https://corsproxy.io/?" + encodeURIComponent(url);
+                console.error("❌ [究极手] 主代理加载失败！启动备用通道...");
+                // 备用通道：另一个纯净的 CORS 代理
+                inpaintImg.src = "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url);
             };
         }
 
