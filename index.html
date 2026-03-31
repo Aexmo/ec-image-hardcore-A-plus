@@ -165,6 +165,57 @@
                 </div>
             </div>
         </div>
+        <div id="inpaintModal" class="prompt-modal-overlay">
+            <div class="prompt-modal-box" style="width: 85vw; max-width: 1200px; display: flex; flex-direction: column; gap: 1rem;">
+                <h3 class="text-xl text-zonai-yellow mb-2 font-black tracking-widest uppercase flex items-center justify-between">
+                    <span>🖌️ 究极手·精准覆写 <span id="inpaintSlotTitle" class="text-white text-sm ml-2"></span></span>
+                    
+                    <div id="historyControls" class="flex items-center gap-4 text-sm font-mono text-sheikah-blue hidden">
+                        <button onclick="prevHistory()" class="hover:text-zonai-yellow transition">◀ 倒转</button>
+                        <span id="historyIndicator">V.1 / 1</span>
+                        <button onclick="nextHistory()" class="hover:text-zonai-yellow transition">前进 ▶</button>
+                    </div>
+                </h3>
+
+                <div class="flex gap-4 h-[60vh]">
+                    <div class="relative flex-grow bg-black/50 border border-zonai-yellow/30 rounded-xl overflow-hidden flex justify-center items-center" id="canvasContainer">
+                        <img id="inpaintBaseImg" src="" crossorigin="anonymous" class="absolute max-w-full max-h-full object-contain pointer-events-none" />
+                        <canvas id="inpaintCanvas" class="absolute cursor-crosshair touch-none"></canvas>
+                    </div>
+
+                    <div class="w-80 flex flex-col gap-4">
+                        <div class="p-4 bg-black/40 border border-sheikah-blue/30 rounded-xl">
+                            <label class="text-xs text-sheikah-blue font-mono tracking-widest block mb-2">画笔粗细 / BRUSH SIZE</label>
+                            <input type="range" id="brushSize" min="5" max="100" value="30" class="w-full mb-4" style="accent-color: var(--zonai-teal);">
+                            <div class="flex gap-2">
+                                <button onclick="undoBrush()" class="action-mini-btn flex-1">↩️ 撤销</button>
+                                <button onclick="clearCanvas()" class="action-mini-btn flex-1 text-red-400 border-red-400">🗑️ 清空</button>
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-black/40 border border-sheikah-blue/30 rounded-xl">
+                            <label class="text-xs text-sheikah-blue font-mono tracking-widest block mb-2">标注墨水 / INK COLOR</label>
+                            <div class="flex gap-3">
+                                <button onclick="changeBrushColor('#FF3333')" class="w-8 h-8 rounded-full bg-[#FF3333] border-2 border-white/50 focus:border-white hover:scale-110 transition"></button>
+                                <button onclick="changeBrushColor('#000000')" class="w-8 h-8 rounded-full bg-black border-2 border-white/50 focus:border-white hover:scale-110 transition"></button>
+                                <button onclick="changeBrushColor('#00FFC5')" class="w-8 h-8 rounded-full bg-zonai-teal border-2 border-white/50 focus:border-white hover:scale-110 transition"></button>
+                                <button onclick="changeBrushColor('#FFFFFF')" class="w-8 h-8 rounded-full bg-white border-2 border-white/50 focus:border-white hover:scale-110 transition"></button>
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-black/40 border border-sheikah-blue/30 rounded-xl flex-grow flex flex-col">
+                            <label class="text-xs text-sheikah-blue font-mono tracking-widest block mb-2">细节覆写神谕 / NEW PROMPT</label>
+                            <textarea id="inpaintPrompt" class="flex-grow sheikah-input resize-none text-sm custom-scrollbar" placeholder="例如：把红圈里的项链换成纯金材质，保持高光..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-btn-group mt-2">
+                    <button onclick="closeInpaintModal()" class="modal-btn modal-btn-cancel">取消封印</button>
+                    <button onclick="sendInpaintTask()" class="modal-btn bg-zonai-yellow text-black hover:shadow-[0_0_40px_rgba(255,215,0,0.6)] font-black border-none">⚡ 锁定并重绘</button>
+                </div>
+            </div>
+        </div>
 
         <nav class="sidebar-categories">
             <div id="nav-dash" class="category-icon active" onclick="switchView('dashboard', this)"><svg width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
@@ -699,18 +750,224 @@ function getCurrentSlotTitles() {
             }
         }
 
-        function renderSlot(idx) {
+function renderSlot(idx) {
             const slot = document.getElementById(`slot-${idx}`); 
-            if(!slot) return; // 防止越界渲染
+            if(!slot) return; 
             slot.classList.remove('standby'); const data = imageSlots[idx];
-            // 注意：img 标签会自动根据我在 CSS 里加的 height:auto 和 object-fit:contain 消除重叠自适应展开
-            slot.innerHTML = `<img src="${data.url}"><div class="slot-actions"><div class="action-mini-btn" onclick="openEditModal(${idx})">EDIT</div><div class="action-mini-btn" onclick="triggerGeneration(${idx})">REDRAW</div><div class="action-mini-btn" onclick="downloadSingle(${idx})">⬇️</div></div>`;
+            
+            // 确保如果 data 存在，且是最新版本的话，正确读取 url
+            const displayUrl = data.history ? data.history[data.currentIndex] : data.url;
+
+            slot.innerHTML = `
+                <img src="${displayUrl}">
+                <div class="slot-actions">
+                    <div class="action-mini-btn" onclick="openEditModal(${idx})">EDIT</div>
+                    <div class="action-mini-btn font-bold text-zonai-yellow border-zonai-yellow/50" onclick="openInpaintModal(${idx})">🖌️ 精修</div>
+                    <div class="action-mini-btn" onclick="triggerGeneration(${idx})">REDRAW</div>
+                    <div class="action-mini-btn" onclick="downloadSingle(${idx})">⬇️</div>
+                </div>`;
         }
 
         async function downloadSingle(idx) { const img = imageSlots[idx]; if(!img) return; await performMasterSwordSlash(); try { const blob = await fetchImageBlobBypassCORS(img.url); const blobUrl = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = blobUrl; a.download = `artifact_${idx}_${Date.now()}.jpg`; document.body.appendChild(a); a.click(); setTimeout(() => { window.URL.revokeObjectURL(blobUrl); document.body.removeChild(a); }, 500); } catch (e) { window.open(img.url, '_blank'); } }
         async function batchDownloadAll() { const container = document.getElementById('batchBtnContainer'); const availableSlots = imageSlots.map((img, i) => img ? {img, i} : null).filter(s => s !== null); if(availableSlots.length === 0) { playZeldaSound('error'); return; } await performMasterSwordSlash(); container.classList.add('slashed'); try { const zip = new JSZip(); const promises = availableSlots.map(async (slotItem) => { const blob = await fetchImageBlobBypassCORS(slotItem.img.url); zip.file(`artifact_${slotItem.i}.jpg`, blob); }); await Promise.all(promises); const content = await zip.generateAsync({type:"blob"}); const zipUrl = window.URL.createObjectURL(content); const a = document.createElement('a'); a.style.display = 'none'; a.href = zipUrl; a.download = `Hyrule_Package_${Date.now()}.zip`; document.body.appendChild(a); a.click(); setTimeout(() => { window.URL.revokeObjectURL(zipUrl); document.body.removeChild(a); }, 500); } catch (e) { triggerError('ARCHIVE FAILED', '打包失败。'); } setTimeout(() => container.classList.remove('slashed'), 800); }
         setInterval(() => { document.getElementById('gameTime').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }, 1000);
+// =========================================================
+        // 🔴 究极手·精准覆写 (Inpainting) 核心引擎与画板逻辑
+        // =========================================================
+        
+        let inpaintSlotIdx = -1;
+        let isDrawing = false;
+        let canvasPaths = []; 
+        let currentPath = [];
+        let currentBrushColor = '#FF3333'; 
 
+        const inpaintCanvas = document.getElementById('inpaintCanvas');
+        const inpaintCtx = inpaintCanvas.getContext('2d', { willReadFrequently: true });
+        const inpaintImg = document.getElementById('inpaintBaseImg');
+
+        function changeBrushColor(color) { playZeldaSound('click'); currentBrushColor = color; }
+
+        function openInpaintModal(idx) {
+            playZeldaSound('click');
+            inpaintSlotIdx = idx;
+            const data = imageSlots[idx];
+            if(!data) return;
+
+            // 初始化历史记录系统 (倒转乾坤)
+            if(!data.history) {
+                data.history = [data.url];
+                data.currentIndex = 0;
+            }
+
+            document.getElementById('inpaintSlotTitle').innerText = `[ Slot ${idx} ]`;
+            document.getElementById('inpaintPrompt').value = ''; 
+            
+            loadInpaintImage(data.history[data.currentIndex]);
+            updateHistoryUI(data);
+            document.getElementById('inpaintModal').classList.add('show');
+        }
+
+        function loadInpaintImage(url) {
+            inpaintImg.src = url;
+            inpaintImg.onload = () => {
+                inpaintCanvas.width = inpaintImg.clientWidth;
+                inpaintCanvas.height = inpaintImg.clientHeight;
+                clearCanvas(); 
+            };
+        }
+
+        function closeInpaintModal() {
+            playZeldaSound('click');
+            document.getElementById('inpaintModal').classList.remove('show');
+        }
+
+        // --- 画布涂鸦 ---
+        function getMousePos(evt) {
+            const rect = inpaintCanvas.getBoundingClientRect();
+            return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+        }
+
+        inpaintCanvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            currentPath = [{ x: getMousePos(e).x, y: getMousePos(e).y }];
+        });
+
+        inpaintCanvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            currentPath.push({ x: getMousePos(e).x, y: getMousePos(e).y });
+            redrawCanvas();
+        });
+
+        inpaintCanvas.addEventListener('mouseup', () => {
+            if(!isDrawing) return;
+            isDrawing = false;
+            if (currentPath.length > 0) {
+                canvasPaths.push({ path: currentPath, size: document.getElementById('brushSize').value, color: currentBrushColor });
+            }
+            currentPath = [];
+        });
+
+        inpaintCanvas.addEventListener('mouseout', () => { isDrawing = false; });
+
+        function redrawCanvas() {
+            inpaintCtx.clearRect(0, 0, inpaintCanvas.width, inpaintCanvas.height);
+            inpaintCtx.lineCap = 'round'; inpaintCtx.lineJoin = 'round';
+            canvasPaths.forEach(stroke => {
+                inpaintCtx.lineWidth = stroke.size; inpaintCtx.strokeStyle = stroke.color;
+                inpaintCtx.beginPath(); inpaintCtx.moveTo(stroke.path[0].x, stroke.path[0].y);
+                stroke.path.forEach(point => inpaintCtx.lineTo(point.x, point.y)); inpaintCtx.stroke();
+            });
+            if (currentPath.length > 0) {
+                inpaintCtx.lineWidth = document.getElementById('brushSize').value; inpaintCtx.strokeStyle = currentBrushColor;
+                inpaintCtx.beginPath(); inpaintCtx.moveTo(currentPath[0].x, currentPath[0].y);
+                currentPath.forEach(point => inpaintCtx.lineTo(point.x, point.y)); inpaintCtx.stroke();
+            }
+        }
+
+        function clearCanvas() { canvasPaths = []; currentPath = []; inpaintCtx.clearRect(0, 0, inpaintCanvas.width, inpaintCanvas.height); }
+        function undoBrush() { canvasPaths.pop(); redrawCanvas(); }
+
+        // --- 历史版本控制 (倒转乾坤) ---
+        function updateHistoryUI(data) {
+            const controls = document.getElementById('historyControls');
+            if(data.history.length > 1) {
+                controls.classList.remove('hidden');
+                document.getElementById('historyIndicator').innerText = `V.${data.currentIndex + 1} / ${data.history.length}`;
+            } else { controls.classList.add('hidden'); }
+        }
+
+        function prevHistory() {
+            playZeldaSound('click'); const data = imageSlots[inpaintSlotIdx];
+            if(data.currentIndex > 0) {
+                data.currentIndex--; loadInpaintImage(data.history[data.currentIndex]); updateHistoryUI(data); renderSlot(inpaintSlotIdx);
+            }
+        }
+
+        function nextHistory() {
+            playZeldaSound('click'); const data = imageSlots[inpaintSlotIdx];
+            if(data.currentIndex < data.history.length - 1) {
+                data.currentIndex++; loadInpaintImage(data.history[data.currentIndex]); updateHistoryUI(data); renderSlot(inpaintSlotIdx);
+            }
+        }
+        // =========================================================
+        // 🔴 核心上传与发包引擎：合并图层 -> Firebase -> n8n
+        // =========================================================
+        
+        async function sendInpaintTask() {
+            const prompt = document.getElementById('inpaintPrompt').value.trim();
+            if (!prompt) { triggerError('MISSING DIRECTIVE', '请填写神谕指令！'); return; }
+            if (canvasPaths.length === 0) { triggerError('NO ANNOTATION', '请在图片上涂抹标注区域！'); return; }
+
+            playZeldaSound('click');
+            const N8N_INPAINT_WEBHOOK = "https://zcaaron7.app.n8n.cloud/webhook/inpaint-v1"; // ⚠️ 必须换成工作流A的 Production URL
+
+            // 1. 动态判断图片的长宽比
+            const titles = getCurrentSlotTitles();
+            const targetTitle = titles[inpaintSlotIdx] || "";
+            let aspectRatio = "1:1";
+            if (targetTitle.includes("老版A+")) aspectRatio = "16:9";
+            if (targetTitle.includes("高级A+")) aspectRatio = "21:9";
+
+            // 2. 合并原图与涂鸦图层
+            const mergeCanvas = document.createElement('canvas');
+            mergeCanvas.width = inpaintCanvas.width;
+            mergeCanvas.height = inpaintCanvas.height;
+            const mCtx = mergeCanvas.getContext('2d');
+            
+            // 为了防止跨域污染导致无法 toBlob，这里在底图加载时已经加了 crossorigin="anonymous"
+            mCtx.drawImage(inpaintImg, 0, 0, mergeCanvas.width, mergeCanvas.height);
+            mCtx.drawImage(inpaintCanvas, 0, 0);
+
+            // 让当前卡片进入加载状态并关闭弹窗
+            closeInpaintModal();
+            const slot = document.getElementById(`slot-${inpaintSlotIdx}`);
+            slot.classList.add('standby');
+            slot.innerHTML = `<div class="animate-pulse text-zonai-yellow italic text-xs tracking-widest font-mono py-16">UPLOADING & OVERWRITING...</div>`;
+
+            const taskId = `inpaint_${Date.now()}_${inpaintSlotIdx}`;
+
+            // 3. 将 Canvas 转为文件并静默上传到 Firebase Storage
+            mergeCanvas.toBlob(async (blob) => {
+                if (!blob) { triggerError('RENDER ERROR', '图层合并失败，无法生成文件。'); renderSlot(inpaintSlotIdx); return; }
+                
+                try {
+                    // 上传到 Firebase Storage (假设你已经初始化了 firebase)
+                    const storageRef = firebase.storage().ref();
+                    const maskRef = storageRef.child(`hyrule_masks/${taskId}.jpg`);
+                    await maskRef.put(blob);
+                    
+                    // 获取公网绝对链接 (用来喂给 KIE API)
+                    const uploadedImageUrl = await maskRef.getDownloadURL();
+
+                    // 4. 构建发给 n8n 的暗号包
+                    const payload = {
+                        task_id: taskId,
+                        slot_idx: inpaintSlotIdx,
+                        prompt: prompt,
+                        aspect_ratio: aspectRatio,
+                        annotated_image_url: uploadedImageUrl
+                    };
+
+                    // 5. 扣动扳机，发给 n8n
+                    const response = await fetch(N8N_INPAINT_WEBHOOK, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if(!response.ok) throw new Error("n8n Webhook 无响应");
+
+                    // 6. 开始监听 Firebase Database，等待 Nano Banana 2 把新图送回来
+                    activeKieTasks.push({ slot: inpaintSlotIdx, taskId: taskId, isInpaint: true });
+                    resumeKieListener(inpaintSlotIdx, taskId); 
+
+                } catch (error) {
+                    console.error(error);
+                    triggerError('CONNECTION ERROR', '与云端仓库断开连接或 n8n 拒绝访问。');
+                    renderSlot(inpaintSlotIdx); 
+                }
+            }, 'image/jpeg', 0.95);
+        }
     </script>
 </body>
 </html>
