@@ -566,32 +566,77 @@ function getCurrentSlotTitles() {
 
         let currentEditingSlotIdx = -1;
 
-        // 🔴 修改：使用动态 titles
+// ---------------------------------------------------------
+        // 🔴 终极修复：超强鲁棒性的单图提取与重绘逻辑
+        // ---------------------------------------------------------
         function openEditModal(idx) {
-            playZeldaSound('click'); const fullText = document.getElementById('sopText').value;
+            playZeldaSound('click'); 
+            const fullText = document.getElementById('sopText').value;
             const titles = getCurrentSlotTitles();
             if (!fullText) { triggerError('NO SOP DATA', '全局文本框中没有发现神谕文案，无法提取单图指令。'); return; }
-            currentEditingSlotIdx = idx; document.getElementById('modalSlotTitle').innerText = `[ ${titles[idx]} ]`;
+
+            currentEditingSlotIdx = idx;
+            const targetTitle = titles[idx];
+            // 弹窗顶部的标题，把括号去掉变美观
+            document.getElementById('modalSlotTitle').innerText = `[ ${targetTitle.replace(/【|】/g, '')} ]`;
+
+            // 1. 提取核心关键词 (例如：主图, 卖点图1, 老版A+模块1, 高级A+模块1)
+            const coreMatch = targetTitle.match(/(主图|卖点图\d|老版A\+模块\d|高级A\+模块\d)/);
+            // 将加号进行转义，防止正则报错
+            const coreKeyword = coreMatch ? coreMatch[0].replace('+', '\\+') : '未知';
+
+            // 2. 用正则模糊匹配起点：寻找形如 【高级A+模块1：全宽幅...】 的完整括号，无视标点和中英文差异
+            const regex = new RegExp('【[^】]*' + coreKeyword + '[^】]*】');
+            const match = fullText.match(regex);
+
+            if (!match) { 
+                triggerError('PARSE ERROR', `在全文中找不到包含【${coreMatch[0]}】的核心标签！\n请检查大模型是否漏写了该模块。`); 
+                return; 
+            }
+
+            let startIdx = match.index;
             
-            const targetTitle = titles[idx]; const nextTitle = idx < titles.length - 1 ? titles[idx + 1] : null;
-            let startIdx = fullText.indexOf(targetTitle); if (startIdx === -1) { triggerError('PARSE ERROR', `在全文中找不到标签 ${targetTitle}，切割失败！`); return; }
-            let endIdx = nextTitle ? fullText.indexOf(nextTitle) : fullText.length; if (endIdx === -1) endIdx = fullText.length; 
-            const extractedBlock = fullText.substring(startIdx, endIdx).trim(); document.getElementById('modalTextarea').value = extractedBlock; document.getElementById('promptModal').classList.add('show');
+            // 3. 终极切割法：不找特定的名字了，直接找下一个 【 作为结束标志！
+            let endIdx = fullText.indexOf('【', startIdx + match[0].length);
+            if (endIdx === -1) {
+                endIdx = fullText.length; // 如果找不到下一个 【，说明这是最后一块
+            }
+
+            const extractedBlock = fullText.substring(startIdx, endIdx).trim();
+            document.getElementById('modalTextarea').value = extractedBlock;
+            document.getElementById('promptModal').classList.add('show');
         }
 
-        function closeEditModal() { playZeldaSound('click'); document.getElementById('promptModal').classList.remove('show'); }
-
-        // 🔴 修改：使用动态 titles
+        // ---------------------------------------------------------
+        // 🔴 同步修复：保存并精确替换文本块
+        // ---------------------------------------------------------
         function saveAndRedrawSingle() {
-            playZeldaSound('click'); const editedText = document.getElementById('modalTextarea').value; let fullText = document.getElementById('sopText').value;
+            playZeldaSound('click'); 
+            const editedText = document.getElementById('modalTextarea').value; 
+            let fullText = document.getElementById('sopText').value;
             const titles = getCurrentSlotTitles();
-            const targetTitle = titles[currentEditingSlotIdx]; const nextTitle = currentEditingSlotIdx < titles.length - 1 ? titles[currentEditingSlotIdx + 1] : null;
-            
-            let startIdx = fullText.indexOf(targetTitle); let endIdx = nextTitle ? fullText.indexOf(nextTitle) : fullText.length; if (endIdx === -1) endIdx = fullText.length;
-            const newFullText = fullText.substring(0, startIdx) + editedText + "\n\n" + fullText.substring(endIdx); document.getElementById('sopText').value = newFullText;
-            saveAppState(); closeEditModal(); triggerGeneration(currentEditingSlotIdx);
-        }
+            const targetTitle = titles[currentEditingSlotIdx];
 
+            const coreMatch = targetTitle.match(/(主图|卖点图\d|老版A\+模块\d|高级A\+模块\d)/);
+            const coreKeyword = coreMatch ? coreMatch[0].replace('+', '\\+') : '未知';
+            
+            const regex = new RegExp('【[^】]*' + coreKeyword + '[^】]*】');
+            const match = fullText.match(regex);
+
+            if (match) {
+                let startIdx = match.index;
+                let endIdx = fullText.indexOf('【', startIdx + match[0].length);
+                if (endIdx === -1) endIdx = fullText.length;
+                
+                // 将修改后的文案完美缝合进全文
+                const newFullText = fullText.substring(0, startIdx) + editedText + "\n\n" + fullText.substring(endIdx);
+                document.getElementById('sopText').value = newFullText;
+            }
+
+            saveAppState(); 
+            closeEditModal(); 
+            triggerGeneration(currentEditingSlotIdx);
+        }
         async function fetchImageBlobBypassCORS(url) {
             const cleanUrl = url.replace(/^https?:\/\//, ''); const proxies = [`https://wsrv.nl/?url=${encodeURIComponent(cleanUrl)}&output=jpg`, `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`];
             for (let proxyUrl of proxies) { try { const res = await fetch(proxyUrl); if (res.ok) return await res.blob(); } catch (e) {} } throw new Error("CORS Blocked");
