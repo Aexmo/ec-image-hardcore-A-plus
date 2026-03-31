@@ -566,6 +566,12 @@ function getCurrentSlotTitles() {
 
         let currentEditingSlotIdx = -1;
 
+// 🔴 补回：关闭微调通道弹窗 (放在这里才对！)
+    function closeEditModal() { 
+        playZeldaSound('click'); 
+        document.getElementById('promptModal').classList.remove('show'); 
+    }
+
 // ---------------------------------------------------------
         // 🔴 终极修复：超强鲁棒性的单图提取与重绘逻辑
         // ---------------------------------------------------------
