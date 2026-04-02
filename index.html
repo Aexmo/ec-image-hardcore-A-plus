@@ -348,8 +348,8 @@
     </div>
 
     <script>
-        const SECRET_AGENT_URL = "https://zcaaron7.app.n8n.cloud/webhook/design-comment-v1";
-        const SECRET_KIE_URL = "https://zcaaron7.app.n8n.cloud/webhook/picture-progress-v2";
+        const SECRET_AGENT_URL = "https://zcaaron7.app.n8n.cloud/webhook/5830ed86-5a80-41fd-8803-54b0d8354be1";
+        const SECRET_KIE_URL = "https://zcaaron7.app.n8n.cloud/webhook/dd38d62a-95ad-4127-8542-df93f7c98af2";
         const N8N_INPAINT_WEBHOOK = "https://zcaaron7.app.n8n.cloud/webhook/inpaint-v1"; 
 
         const SYSTEM_PWD = "3123119";
@@ -529,9 +529,6 @@
             } catch (err) { clearInterval(progressInterval); document.getElementById('championsOverlay').classList.remove('show'); activeAgentTask = null; saveAppState(); db.ref('agent_tasks/' + agentTaskId).off(); triggerError('NETWORK ERROR', '无法连接到远端智脑节点。'); }
         }
 
-        // =========================================================
-        // 🔴 终极修复：12个固定绝对坐标体系 + 支持 THD
-        // =========================================================
         function getCurrentSlotTitles() {
             const scope = document.getElementById('designScope').value;
             let titles = new Array(12).fill(null); 
@@ -771,9 +768,6 @@
         async function batchDownloadAll() { const container = document.getElementById('batchBtnContainer'); const availableSlots = imageSlots.map((img, i) => img ? {img, i} : null).filter(s => s !== null); if(availableSlots.length === 0) { playZeldaSound('error'); return; } await performMasterSwordSlash(); container.classList.add('slashed'); try { const zip = new JSZip(); const promises = availableSlots.map(async (slotItem) => { const blob = await fetchImageBlobBypassCORS(slotItem.img.url); zip.file(`artifact_${slotItem.i}.jpg`, blob); }); await Promise.all(promises); const content = await zip.generateAsync({type:"blob"}); const zipUrl = window.URL.createObjectURL(content); const a = document.createElement('a'); a.style.display = 'none'; a.href = zipUrl; a.download = `Hyrule_Package_${Date.now()}.zip`; document.body.appendChild(a); a.click(); setTimeout(() => { window.URL.revokeObjectURL(zipUrl); document.body.removeChild(a); }, 500); } catch (e) { triggerError('ARCHIVE FAILED', '打包失败。'); } setTimeout(() => container.classList.remove('slashed'), 800); }
         setInterval(() => { document.getElementById('gameTime').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }, 1000);
 
-        // =========================================================
-        // 🔴 究极手·精准覆写 (Inpainting) 核心引擎与画板逻辑
-        // =========================================================
         let inpaintSlotIdx = -1;
         let isDrawing = false;
         let canvasPaths = []; 
