@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyrule Strategic Command v13.7 (Terminal Auth)</title>
+    <title>Hyrule Strategic Command v14.0 (Terminal Auth)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -69,14 +69,12 @@
         .progress-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; border: 1px solid rgba(0,212,255,0.3); }
         .progress-bar-fill { height: 100%; width: 0%; background: var(--sheikah-blue); box-shadow: 0 0 15px var(--sheikah-blue); transition: width 1s linear; }
 
-        /* =========================================
-           重构：动态画廊布局样式 (无边框防重叠)
-           ========================================= */
+        /* 动态画廊布局样式 */
         .gallery-wrapper { display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding-right: 15px; }
         .main-images-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
         .aplus-images-section { display: flex; flex-direction: column; gap: 2rem; width: 100%; }
 
-        /* 单个图片插槽：完全无边框自适应 */
+        /* 单个图片插槽 */
         .quest-slot { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; height: auto; border: none !important; border-radius: 1rem; background: rgba(0,0,0,0.6); }
         .quest-slot.standby { border: 1px dashed rgba(0, 212, 255, 0.3) !important; }
         .quest-slot img { width: 100%; height: auto; display: block; object-fit: contain; border: none !important; }
@@ -84,9 +82,6 @@
         
         .slot-actions { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.85); display: flex; padding: 8px; gap: 8px; transform: translateY(100%); transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); flex-wrap: wrap; }
         .quest-slot:hover .slot-actions { transform: translateY(0); z-index: 50; }
-        
-        .action-mini-btn { flex: 1; font-size: 11px; font-weight: 900; border: 1px solid var(--sheikah-blue); color: var(--sheikah-blue); padding: 6px; border-radius: 6px; cursor: pointer; text-align: center; transition: 0.2s; min-width: 30%; }
-        .action-mini-btn:hover { background: var(--sheikah-blue); color: #000; }
         
         .status-box-enhanced { background: rgba(0, 20, 25, 0.6); border: 1px solid rgba(0, 212, 255, 0.3); border-radius: 1.5rem; position: relative; padding: 1.5rem; overflow: hidden; box-shadow: inset 0 0 30px rgba(0, 212, 255, 0.1); }
         .master-sword-container { margin-top: 1rem; width: 100%; height: 200px; display: flex; justify-content: center; align-items: center; overflow: hidden; border-radius: 1.5rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(0, 212, 255, 0.1); }
@@ -166,6 +161,7 @@
                 </div>
             </div>
         </div>
+
         <div id="inpaintModal" class="prompt-modal-overlay">
             <div class="prompt-modal-box" style="width: 85vw; max-width: 1200px; display: flex; flex-direction: column; gap: 1rem;">
                 <h3 class="text-xl text-zonai-yellow mb-2 font-black tracking-widest uppercase flex items-center justify-between">
@@ -212,12 +208,11 @@
                 </div>
 
                 <div class="modal-btn-group mt-2">
-    <button onclick="closeInpaintModal()" class="modal-btn modal-btn-cancel">取消封印</button>
-    
-    <button onclick="sendInpaintTask()" class="modal-btn border-2 border-[#FFD700] bg-black/60 text-[#FF9900] hover:bg-[#FFD700] hover:text-black font-black tracking-widest uppercase transition-all duration-300 animate-[pulse-gold_2s_infinite] flex items-center gap-2 shadow-[0_0_20px_rgba(255,215,0,0.3)]">
-        <span class="text-red-500 drop-shadow-md text-lg">⚡</span> LOCK & INPAINT
-    </button>
-    </div>
+                    <button onclick="closeInpaintModal()" class="modal-btn modal-btn-cancel">取消封印</button>
+                    <button onclick="sendInpaintTask()" class="modal-btn border-2 border-[#FFD700] bg-black/60 text-[#FF9900] hover:bg-[#FFD700] hover:text-black font-black tracking-widest uppercase transition-all duration-300 animate-[pulse-gold_2s_infinite] flex items-center gap-2 shadow-[0_0_20px_rgba(255,215,0,0.3)]">
+                        <span class="text-red-500 drop-shadow-md text-lg">⚡</span> LOCK & INPAINT
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -263,8 +258,9 @@
                             <option value="main_and_6">主幅图7张</option>
                             <option value="main_6_old_aplus">主幅图7张 + 5张老A+</option>
                             <option value="main_6_premium_aplus">主幅图7张 + 5张高级A+</option>
-                            <option value="old_aplus_only">老A+ 5张</option>
-                            <option value="premium_aplus_only">高级A+ 5张</option>
+                            <option value="old_aplus_only">纯5张老A+ 模块</option>
+                            <option value="premium_aplus_only">纯5张高级A+ 模块</option>
+                            <option value="thd_only">THD要求图 7张 (无字/无人物)</option>
                         </select>
 
                         <select id="targetMarket" class="sheikah-input mb-3 text-sm font-mono font-bold custom-scrollbar" style="color: var(--zonai-yellow); border-color: rgba(255,215,0,0.3); background-color: rgba(0,0,0,0.8);" onchange="saveAppState()">
@@ -346,15 +342,16 @@
                     </div>
                 </div>
                 
-                <div class="flex-grow z-10" id="galleryContainer">
-                    </div>
+                <div class="flex-grow z-10" id="galleryContainer"></div>
             </section>
         </div>
     </div>
 
     <script>
-        const SECRET_AGENT_URL = "https://zcaaron7.app.n8n.cloud/webhook/5830ed86-5a80-41fd-8803-54b0d8354be1";
-        const SECRET_KIE_URL = "https://zcaaron7.app.n8n.cloud/webhook/dd38d62a-95ad-4127-8542-df93f7c98af2";
+        const SECRET_AGENT_URL = "https://zcaaron7.app.n8n.cloud/webhook/design-comment-v1";
+        const SECRET_KIE_URL = "https://zcaaron7.app.n8n.cloud/webhook/picture-progress-v2";
+        const N8N_INPAINT_WEBHOOK = "https://zcaaron7.app.n8n.cloud/webhook/inpaint-v1"; 
+
         const SYSTEM_PWD = "3123119";
         const OVERRIDE_PWD = "7758258";
 
@@ -382,7 +379,7 @@
                 document.getElementById('authOverlay').style.opacity = '0';
                 setTimeout(() => { document.getElementById('authOverlay').style.display = 'none'; }, 500);
                 fillUrls();
-                loadAppState(); 
+                loadAppState();
             } else {
                 playZeldaSound('error');
                 const err = document.getElementById('authErrText');
@@ -422,15 +419,14 @@
             } 
         }
 
-        // 🔴 数组变为动态，不再死锁为 7 个
-        let imageSlots = [];
+        let imageSlots = new Array(12).fill(null);
         let globalMaterials = []; 
         let activeAgentTask = null; 
         let activeKieTasks = []; 
 
         function saveAppState() {
             const state = { 
-                designScope: document.getElementById('designScope').value, // 新增
+                designScope: document.getElementById('designScope').value,
                 targetMarket: document.getElementById('targetMarket').value, 
                 prodName: document.getElementById('prodName').value, 
                 prodDesc: document.getElementById('prodDesc').value, 
@@ -454,7 +450,6 @@
                 if (state.prodDesc) document.getElementById('prodDesc').value = state.prodDesc;
                 if (state.sopText) { document.getElementById('sopText').value = state.sopText; const kieBtn = document.getElementById('mainBtn'); kieBtn.disabled = false; kieBtn.classList.add('ready-to-fuse'); }
                 
-                // 加载画廊布局
                 buildGalleryLayout();
 
                 if (state.imageSlots) { imageSlots = state.imageSlots; imageSlots.forEach((img, idx) => { if (img) renderSlot(idx); }); }
@@ -524,7 +519,6 @@
             const agentTaskId = 'agent_' + Date.now(); activeAgentTask = agentTaskId; saveAppState(); resumeAgentListener(agentTaskId);
 
             try {
-                // 🔴 包含 design_scope 参数发给远端
                 const payloadImages = globalMaterials.map(m => m.base64); 
                 const payload = { 
                     product_name: name, product_desc: desc, images: payloadImages, agent_task_id: agentTaskId, 
@@ -535,45 +529,49 @@
             } catch (err) { clearInterval(progressInterval); document.getElementById('championsOverlay').classList.remove('show'); activeAgentTask = null; saveAppState(); db.ref('agent_tasks/' + agentTaskId).off(); triggerError('NETWORK ERROR', '无法连接到远端智脑节点。'); }
         }
 
-        // ---------------------------------------------------------
-// 🔴 精准修复：动态获取当前任务所需的所有 Slot Titles
-// 🔴 必须完全匹配后端 Switch 路由表的 Condition 文本！
-// ---------------------------------------------------------
-function getCurrentSlotTitles() {
-    const scope = document.getElementById('designScope').value;
-    let titles = [];
-    if (!scope) return titles;
+        // =========================================================
+        // 🔴 终极修复：12个固定绝对坐标体系 + 支持 THD
+        // =========================================================
+        function getCurrentSlotTitles() {
+            const scope = document.getElementById('designScope').value;
+            let titles = new Array(12).fill(null); 
+            if (!scope) return titles;
 
-    // 1. 主图与卖点图：保持简单锚点
-    if (scope.includes('main')) {
-        titles.push('【主图】');
-        for(let i=1; i<=6; i++) titles.push(`【卖点图${i}】`);
-    }
+            if (scope.includes('main')) {
+                titles[0] = '【主图】';
+                for(let i=1; i<=6; i++) titles[i] = `【卖点图${i}】`;
+            }
 
-    // 2. 老版 foundation A+：必须匹配后端 Switch 节点设置的路由文本
-    if (scope.includes('old_aplus')) {
-        titles.push('【老版A+模块1: 顶部品牌画册横幅 (Hero Banner)】');
-        titles.push('【老版A+模块2: 隐性痛点的高级拆解】');
-        titles.push('【老版A+模块3: Cosmo 终极生活方式共鸣】');
-        titles.push('【老版A+模块4: 空间环境重构与生活方式】'); // 严格匹配 Switch 节点图片 6 设置的文本
-        titles.push('【老版A+模块5: Rufus FAQ 极简收尾】');
-    }
+            if (scope.includes('thd')) {
+                titles[0] = '【THD白底图1: 纯净主图】';
+                titles[1] = '【THD白底图2: 多角度展示】';
+                titles[2] = '【THD白底图3: 产品尺寸图】';
+                titles[3] = '【THD场景图1: 空间环境】';
+                titles[4] = '【THD场景图2: 空间环境】';
+                titles[5] = '【THD场景图3: 空间环境】';
+                titles[6] = '【THD场景图4: 空间环境】';
+            }
 
-    // 3. 高级 Premium A+：必须匹配后端 Switch 节点设置的路由文本
-    if (scope.includes('premium_aplus')) {
-        titles.push('【高级A+模块1: 全宽幅沉浸式海报 (Editorial Hero)】');
-        titles.push('【高级A+模块2: Hormozi 极致价值感知特写】');
-        titles.push('【高级A+模块3: Cosmo 终极生活方式共鸣】');
-        titles.push('【高级A+模块4: 空间环境重构 (Environmental Storytelling)】');
-        titles.push('【高级A+模块5: 品牌心智收尾 (The Legacy)】');
-    }
-    return titles;
-}
+            if (scope.includes('old_aplus')) {
+                titles[7] = '【老版A+模块1: 顶部品牌画册横幅 (Hero Banner)】';
+                titles[8] = '【老版A+模块2: 隐性痛点的高级拆解】';
+                titles[9] = '【老版A+模块3: Cosmo 终极生活方式共鸣】';
+                titles[10] = '【老版A+模块4: 空间环境重构与生活方式】';
+                titles[11] = '【老版A+模块5: Rufus FAQ 极简收尾】';
+            }
+            if (scope.includes('premium_aplus')) {
+                titles[7] = '【高级A+模块1: 全宽幅沉浸式海报 (Editorial Hero)】';
+                titles[8] = '【高级A+模块2: Hormozi 极致价值感知特写】';
+                titles[9] = '【高级A+模块3: Cosmo 终极生活方式共鸣】';
+                titles[10] = '【高级A+模块4: 空间环境重构 (Environmental Storytelling)】';
+                titles[11] = '【高级A+模块5: 品牌心智收尾 (The Legacy)】';
+            }
+            return titles;
+        }
 
-        // 🔴 核心新增：重构图文并排布局函数
         function handleScopeChange() {
             playZeldaSound('click');
-            imageSlots = []; // 切换模式时清空缓存，防止串台
+            imageSlots = new Array(12).fill(null); 
             buildGalleryLayout();
             saveAppState();
         }
@@ -586,23 +584,17 @@ function getCurrentSlotTitles() {
             const titles = getCurrentSlotTitles();
             let html = '<div class="gallery-wrapper custom-scrollbar">';
 
-            // 判断渲染主图区块 (1:1网格)
-            if (scope.includes('main')) {
+            if (scope.includes('main') || scope.includes('thd')) {
                 html += `<div class="text-sheikah-blue font-bold tracking-widest mb-3 font-mono text-sm uppercase">Main Flow (1:1)</div>`;
                 html += `<div class="main-images-section">`;
-                for(let i=0; i<7; i++) html += buildSlotHtml(i, titles[i]);
+                for(let i=0; i<7; i++) if(titles[i]) html += buildSlotHtml(i, titles[i]);
                 html += `</div>`;
             }
 
-            // 判断渲染A+区块 (长图列表)
-            const aplusStartIndex = scope.includes('main') ? 7 : 0;
             if (scope.includes('aplus')) {
                 html += `<div class="text-zonai-teal font-bold tracking-widest mt-8 mb-3 font-mono text-sm uppercase">A+ Assets (Wide)</div>`;
                 html += `<div class="aplus-images-section">`;
-                for(let i=0; i<5; i++) {
-                    const idx = aplusStartIndex + i;
-                    html += buildSlotHtml(idx, titles[idx]);
-                }
+                for(let i=7; i<12; i++) if(titles[i]) html += buildSlotHtml(i, titles[i]); 
                 html += `</div>`;
             }
 
@@ -614,63 +606,50 @@ function getCurrentSlotTitles() {
             return `
             <div class="quest-slot standby" id="slot-${idx}">
                 <div class="opacity-30 text-sheikah-blue italic text-xs font-mono py-16 px-4 text-center">
-                    ${titleName}<br><span class="text-[10px] uppercase">Standby</span>
+                    ${titleName}<br><span class="text-[10px] uppercase">Slot ${idx} Standby</span>
                 </div>
             </div>`;
         }
 
         let currentEditingSlotIdx = -1;
 
-// 🔴 补回：关闭微调通道弹窗 (放在这里才对！)
-    function closeEditModal() { 
-        playZeldaSound('click'); 
-        document.getElementById('promptModal').classList.remove('show'); 
-    }
+        function closeEditModal() { 
+            playZeldaSound('click'); 
+            document.getElementById('promptModal').classList.remove('show'); 
+        }
 
-// ---------------------------------------------------------
-        // 🔴 终极修复：超强鲁棒性的单图提取与重绘逻辑
-        // ---------------------------------------------------------
         function openEditModal(idx) {
             playZeldaSound('click'); 
             const fullText = document.getElementById('sopText').value;
             const titles = getCurrentSlotTitles();
-            if (!fullText) { triggerError('NO SOP DATA', '全局文本框中没有发现神谕文案，无法提取单图指令。'); return; }
+            if (!fullText) { triggerError('NO SOP DATA', '全局文本框中没有神谕文案，无法提取指令。'); return; }
 
             currentEditingSlotIdx = idx;
             const targetTitle = titles[idx];
-            // 弹窗顶部的标题，把括号去掉变美观
+            if(!targetTitle) return;
+
             document.getElementById('modalSlotTitle').innerText = `[ ${targetTitle.replace(/【|】/g, '')} ]`;
 
-            // 1. 提取核心关键词 (例如：主图, 卖点图1, 老版A+模块1, 高级A+模块1)
-            const coreMatch = targetTitle.match(/(主图|卖点图\d|老版A\+模块\d|高级A\+模块\d)/);
-            // 将加号进行转义，防止正则报错
+            const coreMatch = targetTitle.match(/(主图|卖点图\d|老版A\+模块\d|高级A\+模块\d|THD白底图\d|THD场景图\d)/);
             const coreKeyword = coreMatch ? coreMatch[0].replace('+', '\\+') : '未知';
-
-            // 2. 用正则模糊匹配起点：寻找形如 【高级A+模块1：全宽幅...】 的完整括号，无视标点和中英文差异
+            
             const regex = new RegExp('【[^】]*' + coreKeyword + '[^】]*】');
             const match = fullText.match(regex);
 
             if (!match) { 
-                triggerError('PARSE ERROR', `在全文中找不到包含【${coreMatch[0]}】的核心标签！\n请检查大模型是否漏写了该模块。`); 
+                triggerError('PARSE ERROR', `在全文中找不到包含【${coreMatch[0]}】的核心标签！\n请检查文案。`); 
                 return; 
             }
 
             let startIdx = match.index;
-            
-            // 3. 终极切割法：不找特定的名字了，直接找下一个 【 作为结束标志！
             let endIdx = fullText.indexOf('【', startIdx + match[0].length);
-            if (endIdx === -1) {
-                endIdx = fullText.length; // 如果找不到下一个 【，说明这是最后一块
-            }
+            if (endIdx === -1) endIdx = fullText.length; 
 
             const extractedBlock = fullText.substring(startIdx, endIdx).trim();
             document.getElementById('modalTextarea').value = extractedBlock;
             document.getElementById('promptModal').classList.add('show');
         }
 
-        // ---------------------------------------------------------
-        // 🔴 同步修复：保存并精确替换文本块
-        // ---------------------------------------------------------
         function saveAndRedrawSingle() {
             playZeldaSound('click'); 
             const editedText = document.getElementById('modalTextarea').value; 
@@ -678,7 +657,7 @@ function getCurrentSlotTitles() {
             const titles = getCurrentSlotTitles();
             const targetTitle = titles[currentEditingSlotIdx];
 
-            const coreMatch = targetTitle.match(/(主图|卖点图\d|老版A\+模块\d|高级A\+模块\d)/);
+            const coreMatch = targetTitle.match(/(主图|卖点图\d|老版A\+模块\d|高级A\+模块\d|THD白底图\d|THD场景图\d)/);
             const coreKeyword = coreMatch ? coreMatch[0].replace('+', '\\+') : '未知';
             
             const regex = new RegExp('【[^】]*' + coreKeyword + '[^】]*】');
@@ -689,7 +668,6 @@ function getCurrentSlotTitles() {
                 let endIdx = fullText.indexOf('【', startIdx + match[0].length);
                 if (endIdx === -1) endIdx = fullText.length;
                 
-                // 将修改后的文案完美缝合进全文
                 const newFullText = fullText.substring(0, startIdx) + editedText + "\n\n" + fullText.substring(endIdx);
                 document.getElementById('sopText').value = newFullText;
             }
@@ -698,6 +676,7 @@ function getCurrentSlotTitles() {
             closeEditModal(); 
             triggerGeneration(currentEditingSlotIdx);
         }
+
         async function fetchImageBlobBypassCORS(url) {
             const cleanUrl = url.replace(/^https?:\/\//, ''); const proxies = [`https://wsrv.nl/?url=${encodeURIComponent(cleanUrl)}&output=jpg`, `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`];
             for (let proxyUrl of proxies) { try { const res = await fetch(proxyUrl); if (res.ok) return await res.blob(); } catch (e) {} } throw new Error("CORS Blocked");
@@ -726,20 +705,22 @@ function getCurrentSlotTitles() {
             const scope = document.getElementById('designScope').value;
             if (!scope) { triggerError('SCOPE MISSING', '请在左侧面板选择输出范围。'); return; }
             if (!url || !text || globalMaterials.length === 0) { triggerError('CONNECTION REFUSED', '要素不全。如果刚刷新了网页，请重新拖入参考图片。'); return; }
+            
             playZeldaSound('click'); const btn = document.getElementById('mainBtn'); btn.disabled = true; btn.classList.remove('ready-to-fuse'); btn.innerHTML = `RESONATING...`;
             switchView('adventure-log', document.getElementById('nav-notes')); document.getElementById('logContent').innerHTML = "究极手共鸣中... 正在向云端派发作画任务。";
 
             let generatedTasks = []; const batchId = Date.now();
-            const totalSlots = getCurrentSlotTitles().length;
+            const titles = getCurrentSlotTitles();
 
             if(targetIdx === null) {
-                for(let i=0; i<totalSlots; i++) { 
-                    imageSlots[i] = null; const taskId = `task_${batchId}_${i}`; 
-                    generatedTasks.push({ slot: i, taskId: taskId }); activeKieTasks.push({ slot: i, taskId: taskId }); resumeKieListener(i, taskId); 
+                for(let i=0; i<12; i++) { 
+                    if(titles[i] !== null) {
+                        imageSlots[i] = null; const taskId = `task_${batchId}_${i}`; 
+                        generatedTasks.push({ slot: i, taskId: taskId }); activeKieTasks.push({ slot: i, taskId: taskId }); resumeKieListener(i, taskId); 
+                    }
                 }
             } else { 
-                const taskId = `task_${batchId}_${targetIdx}`; generatedTasks.push({ slot: targetIdx, taskId: taskId }); 
-                activeKieTasks.push({ slot: targetIdx, taskId: taskId }); resumeKieListener(targetIdx, taskId); 
+                const taskId = `task_${batchId}_${targetIdx}`; generatedTasks.push({ slot: targetIdx, taskId: taskId }); activeKieTasks.push({ slot: targetIdx, taskId: taskId }); resumeKieListener(targetIdx, taskId); 
             }
             saveAppState(); 
 
@@ -754,46 +735,45 @@ function getCurrentSlotTitles() {
             }
         }
 
-function renderSlot(idx) {
+        function renderSlot(idx) {
             const slot = document.getElementById(`slot-${idx}`); 
             if(!slot) return; 
             slot.classList.remove('standby'); const data = imageSlots[idx];
             
-            // 确保如果 data 存在，且是最新版本的话，正确读取 url
             const displayUrl = data.history ? data.history[data.currentIndex] : data.url;
 
             slot.innerHTML = `
-        <img src="${displayUrl}">
-        <div class="slot-actions" style="flex-direction: column; gap: 8px; padding: 10px;">
-            <div class="flex items-center justify-between gap-2 w-full">
-                <button onclick="openEditModal(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
-                    EDIT
-                </button>
-                <button onclick="openInpaintModal(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
-                    INPAINT
-                </button>
-                <button onclick="triggerGeneration(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
-                    REDRAW
-                </button>
-            </div>
-            <div class="w-full">
-                <button onclick="downloadSingle(${idx})" class="w-full py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200 flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    DOWNLOAD
-                </button>
-            </div>
-        </div>`;
+                <img src="${displayUrl}">
+                <div class="slot-actions" style="flex-direction: column; gap: 8px; padding: 10px;">
+                    <div class="flex items-center justify-between gap-2 w-full">
+                        <button onclick="openEditModal(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                            EDIT
+                        </button>
+                        <button onclick="openInpaintModal(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                            INPAINT
+                        </button>
+                        <button onclick="triggerGeneration(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                            REDRAW
+                        </button>
+                    </div>
+                    <div class="w-full">
+                        <button onclick="downloadSingle(${idx})" class="w-full py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200 flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            DOWNLOAD
+                        </button>
+                    </div>
+                </div>`;
         }
 
         async function downloadSingle(idx) { const img = imageSlots[idx]; if(!img) return; await performMasterSwordSlash(); try { const blob = await fetchImageBlobBypassCORS(img.url); const blobUrl = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = blobUrl; a.download = `artifact_${idx}_${Date.now()}.jpg`; document.body.appendChild(a); a.click(); setTimeout(() => { window.URL.revokeObjectURL(blobUrl); document.body.removeChild(a); }, 500); } catch (e) { window.open(img.url, '_blank'); } }
         async function batchDownloadAll() { const container = document.getElementById('batchBtnContainer'); const availableSlots = imageSlots.map((img, i) => img ? {img, i} : null).filter(s => s !== null); if(availableSlots.length === 0) { playZeldaSound('error'); return; } await performMasterSwordSlash(); container.classList.add('slashed'); try { const zip = new JSZip(); const promises = availableSlots.map(async (slotItem) => { const blob = await fetchImageBlobBypassCORS(slotItem.img.url); zip.file(`artifact_${slotItem.i}.jpg`, blob); }); await Promise.all(promises); const content = await zip.generateAsync({type:"blob"}); const zipUrl = window.URL.createObjectURL(content); const a = document.createElement('a'); a.style.display = 'none'; a.href = zipUrl; a.download = `Hyrule_Package_${Date.now()}.zip`; document.body.appendChild(a); a.click(); setTimeout(() => { window.URL.revokeObjectURL(zipUrl); document.body.removeChild(a); }, 500); } catch (e) { triggerError('ARCHIVE FAILED', '打包失败。'); } setTimeout(() => container.classList.remove('slashed'), 800); }
         setInterval(() => { document.getElementById('gameTime').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }, 1000);
-// =========================================================
+
+        // =========================================================
         // 🔴 究极手·精准覆写 (Inpainting) 核心引擎与画板逻辑
         // =========================================================
-        
         let inpaintSlotIdx = -1;
         let isDrawing = false;
         let canvasPaths = []; 
@@ -812,76 +792,32 @@ function renderSlot(idx) {
             const data = imageSlots[idx];
             if(!data) return;
 
-            // 初始化历史记录系统 (倒转乾坤)
-            if(!data.history) {
-                data.history = [data.url];
-                data.currentIndex = 0;
-            }
-
+            if(!data.history) { data.history = [data.url]; data.currentIndex = 0; }
             document.getElementById('inpaintSlotTitle').innerText = `[ Slot ${idx} ]`;
             document.getElementById('inpaintPrompt').value = ''; 
-            
-            loadInpaintImage(data.history[data.currentIndex]);
-            updateHistoryUI(data);
+            loadInpaintImage(data.history[data.currentIndex]); updateHistoryUI(data);
             document.getElementById('inpaintModal').classList.add('show');
         }
 
-function loadInpaintImage(url) {
-            console.log("🔍 [究极手] 正在尝试拉取底图:", url);
-            
-            // 🚀 终极破解：使用全球极其稳定的专用图片跨域代理 (wsrv.nl)
+        function loadInpaintImage(url) {
             const proxyUrl = "https://wsrv.nl/?url=" + encodeURIComponent(url);
-            
-            // 确保安全锁开启
             inpaintImg.crossOrigin = "anonymous";
             inpaintImg.src = proxyUrl;
             
             inpaintImg.onload = () => {
-                console.log("✅ [究极手] 底图洗白并加载成功！");
-                // 只有图片真正加载出来，画布才会被撑开
                 inpaintCanvas.width = inpaintImg.clientWidth;
                 inpaintCanvas.height = inpaintImg.clientHeight;
                 clearCanvas(); 
             };
-            
-            inpaintImg.onerror = () => {
-                console.error("❌ [究极手] 主代理加载失败！启动备用通道...");
-                // 备用通道：另一个纯净的 CORS 代理
-                inpaintImg.src = "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url);
-            };
+            inpaintImg.onerror = () => { inpaintImg.src = "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url); };
         }
 
-        function closeInpaintModal() {
-            playZeldaSound('click');
-            document.getElementById('inpaintModal').classList.remove('show');
-        }
+        function closeInpaintModal() { playZeldaSound('click'); document.getElementById('inpaintModal').classList.remove('show'); }
 
-        // --- 画布涂鸦 ---
-        function getMousePos(evt) {
-            const rect = inpaintCanvas.getBoundingClientRect();
-            return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
-        }
-
-        inpaintCanvas.addEventListener('mousedown', (e) => {
-            isDrawing = true;
-            currentPath = [{ x: getMousePos(e).x, y: getMousePos(e).y }];
-        });
-
-        inpaintCanvas.addEventListener('mousemove', (e) => {
-            if (!isDrawing) return;
-            currentPath.push({ x: getMousePos(e).x, y: getMousePos(e).y });
-            redrawCanvas();
-        });
-
-        inpaintCanvas.addEventListener('mouseup', () => {
-            if(!isDrawing) return;
-            isDrawing = false;
-            if (currentPath.length > 0) {
-                canvasPaths.push({ path: currentPath, size: document.getElementById('brushSize').value, color: currentBrushColor });
-            }
-            currentPath = [];
-        });
-
+        function getMousePos(evt) { const rect = inpaintCanvas.getBoundingClientRect(); return { x: evt.clientX - rect.left, y: evt.clientY - rect.top }; }
+        inpaintCanvas.addEventListener('mousedown', (e) => { isDrawing = true; currentPath = [{ x: getMousePos(e).x, y: getMousePos(e).y }]; });
+        inpaintCanvas.addEventListener('mousemove', (e) => { if (!isDrawing) return; currentPath.push({ x: getMousePos(e).x, y: getMousePos(e).y }); redrawCanvas(); });
+        inpaintCanvas.addEventListener('mouseup', () => { if(!isDrawing) return; isDrawing = false; if (currentPath.length > 0) { canvasPaths.push({ path: currentPath, size: document.getElementById('brushSize').value, color: currentBrushColor }); } currentPath = []; });
         inpaintCanvas.addEventListener('mouseout', () => { isDrawing = false; });
 
         function redrawCanvas() {
@@ -902,58 +838,32 @@ function loadInpaintImage(url) {
         function clearCanvas() { canvasPaths = []; currentPath = []; inpaintCtx.clearRect(0, 0, inpaintCanvas.width, inpaintCanvas.height); }
         function undoBrush() { canvasPaths.pop(); redrawCanvas(); }
 
-        // --- 历史版本控制 (倒转乾坤) ---
         function updateHistoryUI(data) {
             const controls = document.getElementById('historyControls');
-            if(data.history.length > 1) {
-                controls.classList.remove('hidden');
-                document.getElementById('historyIndicator').innerText = `V.${data.currentIndex + 1} / ${data.history.length}`;
-            } else { controls.classList.add('hidden'); }
+            if(data.history.length > 1) { controls.classList.remove('hidden'); document.getElementById('historyIndicator').innerText = `V.${data.currentIndex + 1} / ${data.history.length}`; } else { controls.classList.add('hidden'); }
         }
 
-        function prevHistory() {
-            playZeldaSound('click'); const data = imageSlots[inpaintSlotIdx];
-            if(data.currentIndex > 0) {
-                data.currentIndex--; loadInpaintImage(data.history[data.currentIndex]); updateHistoryUI(data); renderSlot(inpaintSlotIdx);
-            }
-        }
+        function prevHistory() { playZeldaSound('click'); const data = imageSlots[inpaintSlotIdx]; if(data.currentIndex > 0) { data.currentIndex--; loadInpaintImage(data.history[data.currentIndex]); updateHistoryUI(data); renderSlot(inpaintSlotIdx); } }
+        function nextHistory() { playZeldaSound('click'); const data = imageSlots[inpaintSlotIdx]; if(data.currentIndex < data.history.length - 1) { data.currentIndex++; loadInpaintImage(data.history[data.currentIndex]); updateHistoryUI(data); renderSlot(inpaintSlotIdx); } }
 
-        function nextHistory() {
-            playZeldaSound('click'); const data = imageSlots[inpaintSlotIdx];
-            if(data.currentIndex < data.history.length - 1) {
-                data.currentIndex++; loadInpaintImage(data.history[data.currentIndex]); updateHistoryUI(data); renderSlot(inpaintSlotIdx);
-            }
-        }
-        // =========================================================
-        // 🔴 核心上传与发包引擎：合并图层 -> Firebase -> n8n
-        // =========================================================
-        
         async function sendInpaintTask() {
             const prompt = document.getElementById('inpaintPrompt').value.trim();
             if (!prompt) { triggerError('MISSING DIRECTIVE', '请填写神谕指令！'); return; }
             if (canvasPaths.length === 0) { triggerError('NO ANNOTATION', '请在图片上涂抹标注区域！'); return; }
 
             playZeldaSound('click');
-            const N8N_INPAINT_WEBHOOK = "https://zcaaron7.app.n8n.cloud/webhook/inpaint-v1"; // ⚠️ 必须换成工作流A的 Production URL
-
-            // 1. 动态判断图片的长宽比
             const titles = getCurrentSlotTitles();
             const targetTitle = titles[inpaintSlotIdx] || "";
             let aspectRatio = "1:1";
             if (targetTitle.includes("老版A+")) aspectRatio = "16:9";
             if (targetTitle.includes("高级A+")) aspectRatio = "21:9";
 
-            // 2. 合并原图与涂鸦图层
             const mergeCanvas = document.createElement('canvas');
-            mergeCanvas.width = inpaintCanvas.width;
-            mergeCanvas.height = inpaintCanvas.height;
+            mergeCanvas.width = inpaintCanvas.width; mergeCanvas.height = inpaintCanvas.height;
             const mCtx = mergeCanvas.getContext('2d');
-            
-            // 为了防止跨域污染导致无法 toBlob，这里在底图加载时已经加了 crossorigin="anonymous"
             mCtx.drawImage(inpaintImg, 0, 0, mergeCanvas.width, mergeCanvas.height);
             mCtx.drawImage(inpaintCanvas, 0, 0);
 
-            // 让当前卡片进入加载状态并关闭弹窗
             closeInpaintModal();
             const slot = document.getElementById(`slot-${inpaintSlotIdx}`);
             slot.classList.add('standby');
@@ -961,49 +871,23 @@ function loadInpaintImage(url) {
 
             const taskId = `inpaint_${Date.now()}_${inpaintSlotIdx}`;
 
-            // 3. 将 Canvas 转为文件并静默上传到 Firebase Storage
             mergeCanvas.toBlob(async (blob) => {
                 if (!blob) { triggerError('RENDER ERROR', '图层合并失败，无法生成文件。'); renderSlot(inpaintSlotIdx); return; }
-                
                 try {
-                    // 上传到 Firebase Storage (假设你已经初始化了 firebase)
                     const storageRef = firebase.storage().ref();
                     const maskRef = storageRef.child(`hyrule_masks/${taskId}.jpg`);
                     await maskRef.put(blob);
-                    
-                    // 获取公网绝对链接 (用来喂给 KIE API)
                     const uploadedImageUrl = await maskRef.getDownloadURL();
 
-                    // 4. 构建发给 n8n 的暗号包
-                    const payload = {
-                        task_id: taskId,
-                        slot_idx: inpaintSlotIdx,
-                        prompt: prompt,
-                        aspect_ratio: aspectRatio,
-                        annotated_image_url: uploadedImageUrl
-                    };
-
-                    // 5. 扣动扳机，发给 n8n
-                    const response = await fetch(N8N_INPAINT_WEBHOOK, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
+                    const payload = { task_id: taskId, slot_idx: inpaintSlotIdx, prompt: prompt, aspect_ratio: aspectRatio, annotated_image_url: uploadedImageUrl };
+                    const response = await fetch(N8N_INPAINT_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                     if(!response.ok) throw new Error("n8n Webhook 无响应");
 
-                    // 6. 开始监听 Firebase Database，等待 Nano Banana 2 把新图送回来
                     activeKieTasks.push({ slot: inpaintSlotIdx, taskId: taskId, isInpaint: true });
                     resumeKieListener(inpaintSlotIdx, taskId); 
-
-                } catch (error) {
-                    console.error(error);
-                    triggerError('CONNECTION ERROR', '与云端仓库断开连接或 n8n 拒绝访问。');
-                    renderSlot(inpaintSlotIdx); 
-                }
+                } catch (error) { triggerError('CONNECTION ERROR', '与云端仓库断开连接或 n8n 拒绝访问。'); renderSlot(inpaintSlotIdx); }
             }, 'image/jpeg', 0.95);
         }
     </script>
 </body>
 </html>
-```
