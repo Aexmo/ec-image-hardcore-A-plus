@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyrule Strategic Command v14.0 (Terminal Auth)</title>
+    <title>Hyrule Strategic Command v14.5 (Categorized Auth)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -291,7 +291,10 @@
                         </select>
 
                         <input type="text" id="prodName" class="sheikah-input mb-3 text-sm" placeholder="产品名称及物理特征..." oninput="saveAppState()">
-                        <textarea id="prodDesc" class="flex-grow sheikah-input resize-none leading-relaxed text-sm mb-3" placeholder="详细核心卖点描述..." oninput="saveAppState()"></textarea>
+                        <textarea id="prodDesc" class="sheikah-input resize-none leading-relaxed text-sm mb-3 h-20" placeholder="详细核心卖点描述..." oninput="saveAppState()"></textarea>
+                        
+                        <textarea id="strictReq" class="flex-grow sheikah-input resize-none leading-relaxed text-sm mb-3 border-red-500/50 focus:border-red-500 shadow-[inset_0_0_10px_rgba(255,0,0,0.1)]" placeholder="⚠️ 强硬设计需求 (例如：必须红底，严禁出现人物，必须有尺寸标注...)" oninput="saveAppState()"></textarea>
+
                         <button onclick="summonAgent()" id="agentBtn" class="btn-agent">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 12 2.1 7.1"/><path d="M12 12l9.9 4.9"/></svg>
                             SUMMON AGENT (一键构思)
@@ -300,10 +303,21 @@
 
                     <div class="panel-glass relative" id="dropZoneContainer">
                         <h3 class="text-sm text-zonai-teal mb-3 italic game-title uppercase tracking-widest">2. Material Carrier</h3>
+                        
+                        <select id="uploadCategory" class="sheikah-input mb-3 text-xs font-mono font-bold custom-scrollbar" style="color: var(--zonai-teal); border-color: rgba(0,255,197,0.3); background-color: rgba(0,0,0,0.8);">
+                            <option value="产品主体图" selected>🟢 产品主体图 (至少1张)</option>
+                            <option value="功能展示图">🔵 功能展示图</option>
+                            <option value="材质细节图">🟣 材质细节图</option>
+                            <option value="尺寸图">📏 尺寸图</option>
+                            <option value="互动图">🤝 互动图</option>
+                            <option value="配件图">🧩 配件图</option>
+                            <option value="参数说明图">📊 参数说明图</option>
+                        </select>
+
                         <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
-                        <label for="fileInput" id="dropZone" class="w-full h-20 border-2 border-dashed border-zonai-teal/30 rounded-xl flex flex-col items-center justify-center cursor-pointer mb-3 hover:bg-zonai-teal/5 transition">
-                            <div class="text-2xl mb-1">💎</div>
-                            <p class="text-[9px] text-gray-400 tracking-widest uppercase font-mono">Drop Assets Here</p>
+                        <label for="fileInput" id="dropZone" class="w-full h-16 border-2 border-dashed border-zonai-teal/30 rounded-xl flex flex-col items-center justify-center cursor-pointer mb-3 hover:bg-zonai-teal/5 transition">
+                            <div class="text-xl mb-1">💎</div>
+                            <p class="text-[9px] text-gray-400 tracking-widest uppercase font-mono">Select Category ↑ Then Drop</p>
                         </label>
                         <div id="materialPreviewGrid" class="grid grid-cols-3 gap-2 overflow-y-auto custom-scrollbar flex-grow content-start"></div>
                     </div>
@@ -430,6 +444,7 @@
                 targetMarket: document.getElementById('targetMarket').value, 
                 prodName: document.getElementById('prodName').value, 
                 prodDesc: document.getElementById('prodDesc').value, 
+                strictReq: document.getElementById('strictReq').value, // 🔴 保存强硬约束
                 sopText: document.getElementById('sopText').value, 
                 imageSlots: imageSlots, 
                 activeAgentTask: activeAgentTask, 
@@ -448,6 +463,7 @@
                 if (state.targetMarket) document.getElementById('targetMarket').value = state.targetMarket;
                 if (state.prodName) document.getElementById('prodName').value = state.prodName;
                 if (state.prodDesc) document.getElementById('prodDesc').value = state.prodDesc;
+                if (state.strictReq) document.getElementById('strictReq').value = state.strictReq; // 🔴 读取强硬约束
                 if (state.sopText) { document.getElementById('sopText').value = state.sopText; const kieBtn = document.getElementById('mainBtn'); kieBtn.disabled = false; kieBtn.classList.add('ready-to-fuse'); }
                 
                 buildGalleryLayout();
@@ -465,13 +481,59 @@
         ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.add('dropzone-active'), false)); ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.remove('dropzone-active'), false));
         dropZone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files), false); fileInput.addEventListener('change', function() { handleFiles(this.files); this.value = ''; });
 
-        function handleFiles(files) {
-            const newFiles = Array.from(files).filter(f => f.type.startsWith('image/')); if(newFiles.length === 0) return;
-            if(globalMaterials.length + newFiles.length > 8) { triggerError('FULL', '最多支持 8 张参考图！'); return; } playZeldaSound('click');
-            newFiles.forEach(file => { const reader = new FileReader(); reader.onload = (e) => { globalMaterials.push({ id: 'mat_' + Math.random().toString(36).substr(2, 9), base64: e.target.result.split(',')[1], preview: e.target.result }); renderMaterialGrid(); }; reader.readAsDataURL(file); });
+        // 🔴 更新命名规则引擎
+        function updateFilenames() {
+            const counts = {};
+            globalMaterials.forEach(m => {
+                counts[m.category] = (counts[m.category] || 0) + 1;
+                m.filename = `${m.category}_${counts[m.category]}`;
+            });
         }
-        function removeMaterial(id) { playZeldaSound('click'); globalMaterials = globalMaterials.filter(m => m.id !== id); renderMaterialGrid(); }
-        function renderMaterialGrid() { const grid = document.getElementById('materialPreviewGrid'); grid.innerHTML = ''; globalMaterials.forEach(m => { const div = document.createElement('div'); div.className = 'relative group aspect-square rounded-xl border border-zonai-teal/30 bg-black/50 overflow-hidden flex items-center justify-center'; div.innerHTML = `<img src="${m.preview}" class="w-full h-full object-cover opacity-90 transition group-hover:opacity-40"><button onclick="removeMaterial('${m.id}')" class="absolute top-1 right-1 bg-red-600/90 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs z-10">✕</button>`; grid.appendChild(div); }); }
+
+        function handleFiles(files) {
+            const currentCat = document.getElementById('uploadCategory').value;
+            const newFiles = Array.from(files).filter(f => f.type.startsWith('image/')); 
+            if(newFiles.length === 0) return;
+            if(globalMaterials.length + newFiles.length > 8) { triggerError('FULL', '最多支持 8 张参考图！'); return; } 
+            
+            playZeldaSound('click');
+            newFiles.forEach(file => { 
+                const reader = new FileReader(); 
+                reader.onload = (e) => { 
+                    globalMaterials.push({ 
+                        id: 'mat_' + Math.random().toString(36).substr(2, 9), 
+                        base64: e.target.result.split(',')[1], 
+                        preview: e.target.result,
+                        category: currentCat
+                    }); 
+                    updateFilenames();
+                    renderMaterialGrid(); 
+                }; 
+                reader.readAsDataURL(file); 
+            });
+        }
+
+        function removeMaterial(id) { 
+            playZeldaSound('click'); 
+            globalMaterials = globalMaterials.filter(m => m.id !== id); 
+            updateFilenames();
+            renderMaterialGrid(); 
+        }
+
+        function renderMaterialGrid() { 
+            const grid = document.getElementById('materialPreviewGrid'); 
+            grid.innerHTML = ''; 
+            globalMaterials.forEach(m => { 
+                const div = document.createElement('div'); 
+                div.className = 'relative group aspect-square rounded-xl border border-zonai-teal/30 bg-black/50 overflow-hidden flex items-center justify-center'; 
+                div.innerHTML = `
+                    <img src="${m.preview}" class="w-full h-full object-cover opacity-90 transition group-hover:opacity-40">
+                    <div class="absolute bottom-0 w-full bg-black/80 text-[8px] text-zonai-teal text-center py-1 font-mono break-all leading-tight">${m.filename}</div>
+                    <button onclick="removeMaterial('${m.id}')" class="absolute top-1 right-1 bg-red-600/90 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs z-10">✕</button>
+                `; 
+                grid.appendChild(div); 
+            }); 
+        }
 
         let progressInterval = null;
         
@@ -509,20 +571,36 @@
         }
 
         async function summonAgent() {
-            const agentUrl = document.getElementById('agentWebhookUrl').value; const name = document.getElementById('prodName').value; const desc = document.getElementById('prodDesc').value; const marketData = JSON.parse(document.getElementById('targetMarket').value);
+            const agentUrl = document.getElementById('agentWebhookUrl').value; 
+            const name = document.getElementById('prodName').value; 
+            const desc = document.getElementById('prodDesc').value; 
+            const strictReq = document.getElementById('strictReq').value;
+            const marketData = JSON.parse(document.getElementById('targetMarket').value);
             const scope = document.getElementById('designScope').value;
 
             if (!scope) { triggerError('SCOPE MISSING', '请先在上方选择 [图文输出范围]！'); document.getElementById('designScope').focus(); return; }
-            if (!agentUrl || !name || !desc || globalMaterials.length === 0) { triggerError('MISSING INTEL', '情报不足！'); return; }
-            playZeldaSound('click');
+            if (!agentUrl || !name || !desc || globalMaterials.length === 0) { triggerError('MISSING INTEL', '情报不足！请填写文案并上传图片。'); return; }
             
+            const hasMainImage = globalMaterials.some(m => m.category === '产品主体图');
+            if (!hasMainImage) { triggerError('MISSING MAIN IMAGE', '非法操作！图片库中必须包含至少一张【产品主体图】才能派发任务！'); return; }
+
+            playZeldaSound('click');
             const agentTaskId = 'agent_' + Date.now(); activeAgentTask = agentTaskId; saveAppState(); resumeAgentListener(agentTaskId);
 
             try {
                 const payloadImages = globalMaterials.map(m => m.base64); 
+                const categorizedImages = globalMaterials.map(m => ({ filename: m.filename, base64: m.base64 }));
+
                 const payload = { 
-                    product_name: name, product_desc: desc, images: payloadImages, agent_task_id: agentTaskId, 
-                    target_market: marketData.market, target_lang: marketData.lang, design_scope: scope 
+                    product_name: name, 
+                    product_desc: desc, 
+                    strict_requirements: strictReq,
+                    images: payloadImages, 
+                    categorized_images: categorizedImages,
+                    agent_task_id: agentTaskId, 
+                    target_market: marketData.market, 
+                    target_lang: marketData.lang, 
+                    design_scope: scope 
                 };
                 const response = await fetch(agentUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 if (!response.ok) throw new Error(`HTTP 错误: ${response.status}`);
@@ -698,11 +776,17 @@
         }
 
         async function triggerGeneration(targetIdx = null) {
-            const url = document.getElementById('webhookUrl').value; const text = document.getElementById('sopText').value;
+            const url = document.getElementById('webhookUrl').value; 
+            const text = document.getElementById('sopText').value;
+            const strictReq = document.getElementById('strictReq').value;
             const scope = document.getElementById('designScope').value;
+            
             if (!scope) { triggerError('SCOPE MISSING', '请在左侧面板选择输出范围。'); return; }
             if (!url || !text || globalMaterials.length === 0) { triggerError('CONNECTION REFUSED', '要素不全。如果刚刷新了网页，请重新拖入参考图片。'); return; }
             
+            const hasMainImage = globalMaterials.some(m => m.category === '产品主体图');
+            if (!hasMainImage) { triggerError('MISSING MAIN IMAGE', '非法操作！图片库中必须包含至少一张【产品主体图】才能派发作画任务！'); return; }
+
             playZeldaSound('click'); const btn = document.getElementById('mainBtn'); btn.disabled = true; btn.classList.remove('ready-to-fuse'); btn.innerHTML = `RESONATING...`;
             switchView('adventure-log', document.getElementById('nav-notes')); document.getElementById('logContent').innerHTML = "究极手共鸣中... 正在向云端派发作画任务。";
 
@@ -723,7 +807,16 @@
 
             try {
                 const payloadImages = globalMaterials.map(m => m.base64); 
-                const payload = { sop_text: text, local_images_base64: payloadImages, redraw_index: targetIdx, firebase_tasks: generatedTasks };
+                const categorizedImages = globalMaterials.map(m => ({ filename: m.filename, base64: m.base64 }));
+
+                const payload = { 
+                    sop_text: text, 
+                    strict_requirements: strictReq,
+                    local_images_base64: payloadImages, 
+                    categorized_images: categorizedImages,
+                    redraw_index: targetIdx, 
+                    firebase_tasks: generatedTasks 
+                };
                 await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 btn.disabled = false; btn.innerHTML = `<img src="totk-what-were-your-favorite-ultrahand-creations-v0-c6lyir7oo06e1.png" class="ultrahand-icon-fixed"><span>究极手一键调和</span>`; document.getElementById('logContent').innerHTML = "任务已下发。Firebase 实时监听网络中...";
             } catch (error) { 
