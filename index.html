@@ -7,7 +7,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script>
@@ -365,7 +371,9 @@
         const SECRET_AGENT_URL = "https://zcaaron7.app.n8n.cloud/webhook/5830ed86-5a80-41fd-8803-54b0d8354be1";
         const SECRET_KIE_URL = "https://zcaaron7.app.n8n.cloud/webhook/dd38d62a-95ad-4127-8542-df93f7c98af2";
         const N8N_INPAINT_WEBHOOK = "https://zcaaron7.app.n8n.cloud/webhook/inpaint-v1"; 
-
+// 👇 新增：专门对接飞书多维表格归档的 n8n Webhook 👇
+        // 请将此 URL 替换为你稍后在 n8n 中设置的实际 Webhook URL
+        const N8N_FEISHU_REPORT_WEBHOOK = "https://zcaaron7.app.n8n.cloud/webhook/feishu-report-v1";
         const SYSTEM_PWD = "3123119";
         const OVERRIDE_PWD = "7758258";
 
@@ -758,14 +766,25 @@
 
         async function performMasterSwordSlash() { const sword = document.getElementById('staticSword'); playZeldaSound('slash'); sword.classList.remove('master-sword-swing'); void sword.offsetWidth; sword.classList.add('master-sword-swing'); return new Promise(r => setTimeout(() => r(), 500)); }
 
+// 🔴 核心逻辑更新：生图完成后自动截图
         function resumeKieListener(slotIdx, taskId) {
             const slot = document.getElementById(`slot-${slotIdx}`); slot.classList.remove('failed'); slot.classList.add('standby'); slot.innerHTML = `<div class="animate-pulse text-sheikah-blue italic text-xs tracking-widest font-mono py-16">RE-SYNCING...</div>`;
             const ref = db.ref('hyrule_tasks/' + taskId);
             ref.on('value', (snapshot) => {
                 const data = snapshot.val(); if (!data) return;
                 if (data.status === 'completed' && data.imageUrl) {
-                    imageSlots[slotIdx] = { url: data.imageUrl, id: taskId }; activeKieTasks = activeKieTasks.filter(t => t.slot !== slotIdx); saveAppState(); 
+                    imageSlots[slotIdx] = { url: data.imageUrl, id: taskId }; 
+                    activeKieTasks = activeKieTasks.filter(t => t.slot !== slotIdx); 
+                    saveAppState(); 
                     renderSlot(slotIdx); slot.classList.remove('failed'); playZeldaSound('success'); ref.off();
+                    
+                    // 🔴 新增自动侦测逻辑：如果队列为空，说明这批图全画完了
+                    if (activeKieTasks.length === 0) {
+                        document.getElementById('logContent').innerHTML = "<span class='text-zonai-yellow animate-pulse'>所有任务达成！准备静默捕获系统战报... 📸</span>";
+                        // 延迟 1.5 秒截图，给 DOM 图片一点加载和渲染的时间，确保截图不是空白的
+                        setTimeout(() => { autoCaptureAndSyncToFeishu(); }, 1500);
+                    }
+
                 } else if (data.status === 'failed') {
                     activeKieTasks = activeKieTasks.filter(t => t.slot !== slotIdx); saveAppState();
                     slot.classList.remove('standby'); slot.classList.add('failed'); 
@@ -774,56 +793,69 @@
             });
         }
 
-        async function triggerGeneration(targetIdx = null) {
-            const url = document.getElementById('webhookUrl').value; 
-            const text = document.getElementById('sopText').value;
-            const strictReq = document.getElementById('strictReq').value;
-            const scope = document.getElementById('designScope').value;
-
-            if (!scope) { triggerError('SCOPE MISSING', '请在左侧面板选择输出范围。'); return; }
-            if (!url || !text || globalMaterials.length === 0) { triggerError('CONNECTION REFUSED', '要素不全。如果刚刷新了网页，请重新拖入参考图片。'); return; }
+        // 🔴 希卡之石终极奥义：全自动静默战报系统
+        async function autoCaptureAndSyncToFeishu() {
+            const logEl = document.getElementById('logContent');
+            const prodName = document.getElementById('prodName').value || "未命名产品";
             
-            const hasMainImage = globalMaterials.some(m => m.category === '产品主体图');
-            if (!hasMainImage) { triggerError('MISSING MAIN IMAGE', '非法操作！图片库中必须包含至少一张【产品主体图】才能派发作画任务！'); return; }
-
-            playZeldaSound('click'); const btn = document.getElementById('mainBtn'); btn.disabled = true; btn.classList.remove('ready-to-fuse'); btn.innerHTML = `RESONATING...`;
-            switchView('adventure-log', document.getElementById('nav-notes')); document.getElementById('logContent').innerHTML = "究极手共鸣中... 正在向云端派发作画任务。";
-
-            let generatedTasks = []; const batchId = Date.now();
-            const titles = getCurrentSlotTitles();
-
-            if(targetIdx === null) {
-                for(let i=0; i<12; i++) { 
-                    if(titles[i] !== null) {
-                        imageSlots[i] = null; const taskId = `task_${batchId}_${i}`; 
-                        generatedTasks.push({ slot: i, taskId: taskId }); activeKieTasks.push({ slot: i, taskId: taskId }); resumeKieListener(i, taskId); 
-                    }
-                }
-            } else { 
-                const taskId = `task_${batchId}_${targetIdx}`; generatedTasks.push({ slot: targetIdx, taskId: taskId }); activeKieTasks.push({ slot: targetIdx, taskId: taskId }); resumeKieListener(targetIdx, taskId); 
-            }
-            saveAppState(); 
-
             try {
-                const payloadImages = globalMaterials.map(m => m.base64); 
-                const categorizedImages = globalMaterials.map(m => ({ filename: m.filename, base64: m.base64 }));
+                // 1. 静默捕获 Purah Pad 网页界面 (.purah-pad)
+                const elementToCapture = document.querySelector('.purah-pad'); 
+                const canvas = await html2canvas(elementToCapture, {
+                    useCORS: true,        // 极其重要！允许跨域加载 Firebase 图片渲染到画布上
+                    allowTaint: true,     // 极其重要！允许被污染的画布转换
+                    scale: 1.5,           // 战报清晰度，1.5倍足够，以免文件过大导致飞书卡顿
+                    backgroundColor: '#1A1614', // 设置背景颜色，保证截图效果
+                    logging: false        // 关闭调试日志
+                });
 
-                const payload = { 
-                    sop_text: text, 
-                    strict_requirements: strictReq,
-                    local_images_base64: payloadImages, 
-                    categorized_images: categorizedImages,
-                    redraw_index: targetIdx, 
-                    firebase_tasks: generatedTasks 
-                };
-                await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                btn.disabled = false; btn.innerHTML = `<img src="totk-what-were-your-favorite-ultrahand-creations-v0-c6lyir7oo06e1.png" class="ultrahand-icon-fixed"><span>究极手一键调和</span>`; document.getElementById('logContent').innerHTML = "任务已下发。Firebase 实时监听网络中...";
-            } catch (error) { 
-                btn.disabled = false; btn.innerHTML = `ERROR - RETRY`; triggerError('GENERATION FAILED', 'KIE 节点无响应。'); 
-                generatedTasks.forEach(task => { db.ref('hyrule_tasks/' + task.taskId).off(); activeKieTasks = activeKieTasks.filter(t => t.taskId !== task.taskId); }); saveAppState();
+                // 2. 将画布静默转换为 JPEG 图片 Blob 文件
+                canvas.toBlob(async (blob) => {
+                    if (!blob) throw new Error("画布捕获失败");
+                    
+                    logEl.innerHTML = "<span class='text-zonai-yellow'>战报捕获成功！正在归档至云端节点... ☁️</span>";
+                    
+                    // 3. 将战报图片静默上传到 Firebase 的 hyrule_reports 专门文件夹中
+                    const reportId = `report_${Date.now()}`;
+                    const storageRef = firebase.storage().ref();
+                    const reportRef = storageRef.child(`hyrule_reports/${reportId}.jpg`);
+                    await reportRef.put(blob);
+                    // 极其重要！获取具有长期有效公网访问权限的下载 URL，用于给 n8n 和飞书展示
+                    const reportImageUrl = await reportRef.getDownloadURL();
+
+                    logEl.innerHTML = "<span class='text-zonai-yellow'>云端同步完成，正在推送飞书自动化节点归档... 📡</span>";
+
+                    // 4. 将 URL 和基础关键信息作为 Payload 发送给 n8n 的飞书工作流
+                    const payload = {
+                        product_name: prodName,
+                        report_url: reportImageUrl,
+                        timestamp: new Date().toISOString(),
+                        mission_type: document.getElementById('designScope').value,
+                        prod_desc: document.getElementById('prodDesc').value,
+                        strict_requirements: document.getElementById('strictReq').value
+                    };
+
+                    const response = await fetch(N8N_FEISHU_REPORT_WEBHOOK, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if(!response.ok) throw new Error("n8n 飞书战报归档节点拒绝访问");
+
+                    playZeldaSound('victory');
+                    logEl.innerHTML = "<span class='text-zonai-teal'>✅ 战略大厅战报已自动成功归档至飞书多维表格！</span>";
+                    setTimeout(() => { logEl.innerHTML = "等待左纳乌信号重新输入..."; }, 5000);
+
+                }, 'image/jpeg', 0.8); // 80% 质量压缩，平衡清晰度和文件大小
+
+            } catch (err) {
+                console.error("自动战报归档失败:", err);
+                logEl.innerHTML = "<span class='text-red-500'>❌ 战报归档失败，请检查 Firebase rules 权限或 n8n 节点网络。</span>";
             }
         }
 
+     // 🔴 关键更新：加上 crossorigin="anonymous"，否则html2canvas会拒绝截图
         function renderSlot(idx) {
             const slot = document.getElementById(`slot-${idx}`); 
             if(!slot) return; 
@@ -832,7 +864,7 @@
             const displayUrl = data.history ? data.history[data.currentIndex] : data.url;
 
             slot.innerHTML = `
-                <img src="${displayUrl}">
+                <img src="${displayUrl}" crossorigin="anonymous"> 
                 <div class="slot-actions" style="flex-direction: column; gap: 8px; padding: 10px;">
                     <div class="flex items-center justify-between gap-2 w-full">
                         <button onclick="openEditModal(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
