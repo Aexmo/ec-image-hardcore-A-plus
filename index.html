@@ -291,11 +291,11 @@
                         </select>
 
                         <input type="text" id="prodName" class="sheikah-input mb-3 text-sm" placeholder="产品名称及物理特征..." oninput="saveAppState()">
-                        <textarea id="prodDesc" class="sheikah-input resize-none leading-relaxed text-sm mb-3 h-20" placeholder="详细核心卖点描述..." oninput="saveAppState()"></textarea>
+                        <textarea id="prodDesc" class="flex-grow sheikah-input resize-none leading-relaxed text-sm mb-3" placeholder="详细核心卖点描述..." oninput="saveAppState()"></textarea>
                         
-                        <textarea id="strictReq" class="flex-grow sheikah-input resize-none leading-relaxed text-sm mb-3 border-red-500/50 focus:border-red-500 shadow-[inset_0_0_10px_rgba(255,0,0,0.1)]" placeholder="⚠️ 强硬设计需求 (例如：必须红底，严禁出现人物，必须有尺寸标注...)" oninput="saveAppState()"></textarea>
+                        <textarea id="strictReq" class="h-12 shrink-0 sheikah-input resize-none leading-relaxed text-sm mb-3 border-red-500/50 focus:border-red-500 shadow-[inset_0_0_10px_rgba(255,0,0,0.1)]" placeholder="⚠️ [选填] 强硬设计需求 (如：必须白底，严禁人物...)" oninput="saveAppState()"></textarea>
 
-                        <button onclick="summonAgent()" id="agentBtn" class="btn-agent">
+                        <button onclick="summonAgent()" id="agentBtn" class="btn-agent mt-auto">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 12 2.1 7.1"/><path d="M12 12l9.9 4.9"/></svg>
                             SUMMON AGENT (一键构思)
                         </button>
@@ -444,7 +444,7 @@
                 targetMarket: document.getElementById('targetMarket').value, 
                 prodName: document.getElementById('prodName').value, 
                 prodDesc: document.getElementById('prodDesc').value, 
-                strictReq: document.getElementById('strictReq').value, // 🔴 保存强硬约束
+                strictReq: document.getElementById('strictReq').value,
                 sopText: document.getElementById('sopText').value, 
                 imageSlots: imageSlots, 
                 activeAgentTask: activeAgentTask, 
@@ -463,7 +463,7 @@
                 if (state.targetMarket) document.getElementById('targetMarket').value = state.targetMarket;
                 if (state.prodName) document.getElementById('prodName').value = state.prodName;
                 if (state.prodDesc) document.getElementById('prodDesc').value = state.prodDesc;
-                if (state.strictReq) document.getElementById('strictReq').value = state.strictReq; // 🔴 读取强硬约束
+                if (state.strictReq) document.getElementById('strictReq').value = state.strictReq; 
                 if (state.sopText) { document.getElementById('sopText').value = state.sopText; const kieBtn = document.getElementById('mainBtn'); kieBtn.disabled = false; kieBtn.classList.add('ready-to-fuse'); }
                 
                 buildGalleryLayout();
@@ -481,7 +481,6 @@
         ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.add('dropzone-active'), false)); ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.remove('dropzone-active'), false));
         dropZone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files), false); fileInput.addEventListener('change', function() { handleFiles(this.files); this.value = ''; });
 
-        // 🔴 更新命名规则引擎
         function updateFilenames() {
             const counts = {};
             globalMaterials.forEach(m => {
@@ -780,7 +779,7 @@
             const text = document.getElementById('sopText').value;
             const strictReq = document.getElementById('strictReq').value;
             const scope = document.getElementById('designScope').value;
-            
+
             if (!scope) { triggerError('SCOPE MISSING', '请在左侧面板选择输出范围。'); return; }
             if (!url || !text || globalMaterials.length === 0) { triggerError('CONNECTION REFUSED', '要素不全。如果刚刷新了网页，请重新拖入参考图片。'); return; }
             
