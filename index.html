@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyrule Strategic Command v14.5 (Categorized Auth & Auto-Report)</title>
+    <title>Hyrule Strategic Command v14.5 (Categorized Auth)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -279,7 +279,7 @@
                                 <option value='{"market":"西班牙", "lang":"Español"}'>🇪🇸 西班牙 (ES / Español)</option>
                             </optgroup>
                             <optgroup label="🌏 亚太及华语战区 (Asia & CN)">
-                                <option value='{"market":"日本", "lang":"日本語"}'>🇯🇵 日本 (JP / 日本語)</option>
+                                <option value='{"market":"日本", "lang":"日本語"}'>🇯🇵 日本 (JP / 日本语)</option>
                                 <option value='{"market":"韩国", "lang":"한국어"}'>🇰🇷 韩国 (KR / 한국어)</option>
                                 <option value='{"market":"中国大陆", "lang":"简体中文"}'>🇨🇳 中国大陆 (CN / 简体中文)</option>
                                 <option value='{"market":"港澳台及海外华侨", "lang":"繁体中文"}'>🇭🇰 港澳台 (HK&TW / 繁體中文)</option>
@@ -293,7 +293,7 @@
                         </select>
 
                         <input type="text" id="prodName" class="sheikah-input mb-3 text-sm" placeholder="产品名称及物理特征..." oninput="saveAppState()">
-                        <textarea id="prodDesc" class="sheikah-input resize-none leading-relaxed text-sm mb-3 h-20" placeholder="详细核心卖点描述..." oninput="saveAppState()"></textarea>
+                        <textarea id="prodDesc" class="flex-grow sheikah-input resize-none leading-relaxed text-sm mb-3" placeholder="详细核心卖点描述..." oninput="saveAppState()"></textarea>
                         
                         <textarea id="strictReq" class="h-12 shrink-0 sheikah-input resize-none leading-relaxed text-sm mb-3 border-red-500/50 focus:border-red-500 shadow-[inset_0_0_10px_rgba(255,0,0,0.1)]" placeholder="⚠️ [选填] 强硬设计需求 (如：必须白底，严禁人物...)" oninput="saveAppState()"></textarea>
 
@@ -326,7 +326,7 @@
 
                     <div class="panel-glass">
                         <h3 class="text-sm text-zonai-teal mb-3 italic game-title uppercase tracking-widest">3. Fuse SOP Commands</h3>
-                        <textarea id="sopText" class="flex-grow sheikah-input border-none bg-black/40 resize-none leading-relaxed text-xs font-mono" placeholder="等待 Agent 注入神谕，或手动修改..." oninput="saveAppState()"></textarea>
+                        <textarea id="sopText" class="flex-grow sheikah-input border-none bg-black/40 resize-none leading-relaxed text-xs font-mono" style="height: 300px;" placeholder="等待 Agent 注入神谕，或手动修改..." oninput="saveAppState()"></textarea>
                     </div>
                 </div>
 
@@ -367,9 +367,8 @@
         const SECRET_AGENT_URL = "https://zcaaron7.app.n8n.cloud/webhook/5830ed86-5a80-41fd-8803-54b0d8354be1";
         const SECRET_KIE_URL = "https://zcaaron7.app.n8n.cloud/webhook/dd38d62a-95ad-4127-8542-df93f7c98af2";
         const N8N_INPAINT_WEBHOOK = "https://zcaaron7.app.n8n.cloud/webhook/inpaint-v1"; 
-        
-        // 👇 新增：专门对接飞书战报的 n8n Webhook 👇
-        const N8N_FEISHU_REPORT_WEBHOOK = "https://zcaaron7.app.n8n.cloud/webhook/feishu-report-v1"; 
+
+        const N8N_FEISHU_REPORT_WEBHOOK = "https://zcaaron7.app.n8n.cloud/webhook/feishu-report-v1"; //专门对接飞书多维表格归档的 n8n Webhook
 
         const SYSTEM_PWD = "3123119";
         const OVERRIDE_PWD = "7758258";
@@ -772,7 +771,6 @@
                     imageSlots[slotIdx] = { url: data.imageUrl, id: taskId }; activeKieTasks = activeKieTasks.filter(t => t.slot !== slotIdx); saveAppState(); 
                     renderSlot(slotIdx); slot.classList.remove('failed'); playZeldaSound('success'); ref.off();
                     
-                    // 🔴 自动侦测：如果所有任务完成，执行静默截图归档
                     if (activeKieTasks.length === 0) {
                         document.getElementById('logContent').innerHTML = "<span class='text-zonai-yellow animate-pulse'>所有任务达成！准备静默捕获系统战报... 📸</span>";
                         setTimeout(() => { autoCaptureAndSyncToFeishu(); }, 1500);
@@ -785,7 +783,6 @@
             });
         }
 
-        // 🔴 自动捕获与发送飞书的引擎
         async function autoCaptureAndSyncToFeishu() {
             const logEl = document.getElementById('logContent');
             const prodName = document.getElementById('prodName').value || "未命名产品";
@@ -899,7 +896,6 @@
             
             const displayUrl = data.history ? data.history[data.currentIndex] : data.url;
 
-            // 🔴 关键：<img> 加上 crossorigin="anonymous"
             slot.innerHTML = `
                 <img src="${displayUrl}" crossorigin="anonymous">
                 <div class="slot-actions" style="flex-direction: column; gap: 8px; padding: 10px;">
