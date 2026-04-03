@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyrule Strategic Command v15.0 (Automated Feishu Report)</title>
+    <title>Hyrule Strategic Command v14.5 (Categorized Auth & Auto-Report)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
+
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script>
@@ -71,6 +71,11 @@
         .progress-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; border: 1px solid rgba(0,212,255,0.3); }
         .progress-bar-fill { height: 100%; width: 0%; background: var(--sheikah-blue); box-shadow: 0 0 15px var(--sheikah-blue); transition: width 1s linear; }
 
+        /* 动态画廊布局样式 */
+        .gallery-wrapper { display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding-right: 15px; }
+        .main-images-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+        .aplus-images-section { display: flex; flex-direction: column; gap: 2rem; width: 100%; }
+
         /* 单个图片插槽 */
         .quest-slot { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; height: auto; border: none !important; border-radius: 1rem; background: rgba(0,0,0,0.6); }
         .quest-slot.standby { border: 1px dashed rgba(0, 212, 255, 0.3) !important; }
@@ -118,9 +123,12 @@
         <div id="authOverlay" class="absolute inset-0 z-[5000] bg-[#050607]/95 backdrop-blur-xl flex flex-col items-center justify-center transition-opacity duration-500">
             <img src="3F3F3F2F3F.png" class="h-28 mb-10 filter drop-shadow-[0_0_30px_rgba(0,255,197,0.4)]" onerror="this.style.display='none'">
             <h2 class="text-4xl text-zonai-teal font-['Orbitron'] tracking-widest mb-3">RESTRICTED ACCESS</h2>
+            <p class="text-gray-400 font-mono text-sm tracking-[0.3em] mb-12 uppercase">Hyrule Strategic Command</p>
+            
             <input type="password" id="terminalPwd" onkeypress="if(event.key==='Enter') authenticateTerminal()" class="sheikah-input text-center w-80 mb-8 text-2xl tracking-[0.5em] bg-black/60 py-4" placeholder="•••••••">
-            <button onclick="authenticateTerminal()" class="px-12 py-4 bg-transparent border-2 border-zonai-teal text-zonai-teal hover:bg-zonai-teal hover:text-black font-black tracking-[0.2em] rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(0,255,197,0.1)]">接入系统</button>
-            <p id="authErrText" class="text-red-500 font-mono text-sm mt-6 opacity-0">验证失败</p>
+            
+            <button onclick="authenticateTerminal()" class="px-12 py-4 bg-transparent border-2 border-zonai-teal text-zonai-teal hover:bg-zonai-teal hover:text-black font-black tracking-[0.2em] rounded-full transition-all duration-300 shadow-[0_0_20px_rgba(0,255,197,0.1)] hover:shadow-[0_0_40px_rgba(0,255,197,0.6)]">DECRYPT / 接入系统</button>
+            <p id="authErrText" class="text-red-500 font-mono text-sm mt-6 opacity-0 transition-opacity">Passcode Incorrect / 验证失败</p>
         </div>
 
         <div id="championsOverlay" class="champions-overlay">
@@ -128,7 +136,85 @@
             <h1 class="victory-text font-[Orbitron]">设计完成!</h1>
             <div class="progress-container">
                 <div class="progress-bar-bg"><div id="shrineProgressBar" class="progress-bar-fill"></div></div>
-                <button onclick="abortAgentTask()" class="mt-8 px-6 py-2 border border-red-900/50 text-red-500/50 rounded-full text-xs transition-all">TERMINATE LINK</button>
+                <p id="shrineStatusText" class="mt-4 text-sheikah-blue/70 font-mono text-sm tracking-widest uppercase">远古学者正在深渊中解析数据结构...</p>
+                <button onclick="abortAgentTask()" class="mt-8 px-6 py-2 border border-red-900/50 text-red-500/50 hover:text-red-400 hover:border-red-500 rounded-full font-mono text-xs tracking-widest transition-all">TERMINATE LINK (强制断开)</button>
+            </div>
+        </div>
+
+        <div id="errorOverlay" class="error-overlay">
+            <div class="error-box">
+                <div class="text-6xl mb-4 animate-bounce">⚠️</div>
+                <h3 id="errorTitle" class="text-3xl text-red-500 font-black mb-4 uppercase tracking-widest">Signal Interrupted</h3>
+                <p id="errorDesc" class="text-red-300 opacity-90 leading-relaxed text-lg font-['PingFang SC']">连接异常，请重试。</p>
+                <button onclick="document.getElementById('errorOverlay').style.display='none'" class="mt-8 px-12 py-3 bg-red-700 hover:bg-red-600 text-white rounded-full font-bold tracking-widest transition-colors shadow-lg">确认 / DISMISS</button>
+            </div>
+        </div>
+
+        <div id="promptModal" class="prompt-modal-overlay">
+            <div class="prompt-modal-box">
+                <h3 class="text-xl text-zonai-teal mb-4 font-black tracking-widest uppercase flex items-center gap-3">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    微调通道 <span id="modalSlotTitle" class="text-sheikah-blue ml-2"></span>
+                </h3>
+                <textarea id="modalTextarea" class="prompt-textarea custom-scrollbar"></textarea>
+                <div class="modal-btn-group">
+                    <button onclick="closeEditModal()" class="modal-btn modal-btn-cancel">取消放弃</button>
+                    <button onclick="saveAndRedrawSingle()" class="modal-btn modal-btn-confirm">保存并触发重绘</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="inpaintModal" class="prompt-modal-overlay">
+            <div class="prompt-modal-box" style="width: 85vw; max-width: 1200px; display: flex; flex-direction: column; gap: 1rem;">
+                <h3 class="text-xl text-zonai-yellow mb-2 font-black tracking-widest uppercase flex items-center justify-between">
+                    <span>🖌️ 究极手·精准覆写 <span id="inpaintSlotTitle" class="text-white text-sm ml-2"></span></span>
+                    
+                    <div id="historyControls" class="flex items-center gap-4 text-sm font-mono text-sheikah-blue hidden">
+                        <button onclick="prevHistory()" class="hover:text-zonai-yellow transition">◀ 倒转</button>
+                        <span id="historyIndicator">V.1 / 1</span>
+                        <button onclick="nextHistory()" class="hover:text-zonai-yellow transition">前进 ▶</button>
+                    </div>
+                </h3>
+
+                <div class="flex gap-4 h-[60vh]">
+                    <div class="relative flex-grow bg-black/50 border border-zonai-yellow/30 rounded-xl overflow-hidden flex justify-center items-center" id="canvasContainer">
+                        <img id="inpaintBaseImg" src="" crossorigin="anonymous" class="absolute max-w-full max-h-full object-contain pointer-events-none" />
+                        <canvas id="inpaintCanvas" class="absolute cursor-crosshair touch-none"></canvas>
+                    </div>
+
+                    <div class="w-80 flex flex-col gap-4">
+                        <div class="p-4 bg-black/40 border border-sheikah-blue/30 rounded-xl">
+                            <label class="text-xs text-sheikah-blue font-mono tracking-widest block mb-2">画笔粗细 / BRUSH SIZE</label>
+                            <input type="range" id="brushSize" min="5" max="100" value="30" class="w-full mb-4" style="accent-color: var(--zonai-teal);">
+                            <div class="flex gap-2">
+                                <button onclick="undoBrush()" class="action-mini-btn flex-1">↩️ 撤销</button>
+                                <button onclick="clearCanvas()" class="action-mini-btn flex-1 text-red-400 border-red-400">🗑️ 清空</button>
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-black/40 border border-sheikah-blue/30 rounded-xl">
+                            <label class="text-xs text-sheikah-blue font-mono tracking-widest block mb-2">标注墨水 / INK COLOR</label>
+                            <div class="flex gap-3">
+                                <button onclick="changeBrushColor('#FF3333')" class="w-8 h-8 rounded-full bg-[#FF3333] border-2 border-white/50 focus:border-white hover:scale-110 transition"></button>
+                                <button onclick="changeBrushColor('#000000')" class="w-8 h-8 rounded-full bg-black border-2 border-white/50 focus:border-white hover:scale-110 transition"></button>
+                                <button onclick="changeBrushColor('#00FFC5')" class="w-8 h-8 rounded-full bg-zonai-teal border-2 border-white/50 focus:border-white hover:scale-110 transition"></button>
+                                <button onclick="changeBrushColor('#FFFFFF')" class="w-8 h-8 rounded-full bg-white border-2 border-white/50 focus:border-white hover:scale-110 transition"></button>
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-black/40 border border-sheikah-blue/30 rounded-xl flex-grow flex flex-col">
+                            <label class="text-xs text-sheikah-blue font-mono tracking-widest block mb-2">细节覆写神谕 / NEW PROMPT</label>
+                            <textarea id="inpaintPrompt" class="flex-grow sheikah-input resize-none text-sm custom-scrollbar" placeholder="例如：把红圈里的项链换成纯金材质，保持高光..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-btn-group mt-2">
+                    <button onclick="closeInpaintModal()" class="modal-btn modal-btn-cancel">取消封印</button>
+                    <button onclick="sendInpaintTask()" class="modal-btn border-2 border-[#FFD700] bg-black/60 text-[#FF9900] hover:bg-[#FFD700] hover:text-black font-black tracking-widest uppercase transition-all duration-300 animate-[pulse-gold_2s_infinite] flex items-center gap-2 shadow-[0_0_20px_rgba(255,215,0,0.3)]">
+                        <span class="text-red-500 drop-shadow-md text-lg">⚡</span> LOCK & INPAINT
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -142,9 +228,9 @@
                 <header class="flex justify-between items-center">
                     <div class="flex items-center">
                         <img src="3F3F3F2F3F.png" class="header-logo-img" onerror="this.style.display='none'">
-                        <h2 class="text-5xl text-zonai-teal italic tracking-wider">战略大厅</h2>
+                        <h2 class="text-5xl text-zonai-teal italic game-title tracking-wider">战略大厅</h2>
                     </div>
-                    <div class="bg-black/70 px-8 py-3 rounded-full border border-zonai-teal/30 text-xs text-zonai-yellow flex items-center gap-4">
+                    <div class="bg-black/70 px-8 py-3 rounded-full border border-zonai-teal/30 text-xs text-sheikah-gold flex items-center gap-4 font-mono">
                          <div class="w-3 h-3 bg-zonai-teal rounded-full animate-pulse shadow-[0_0_15px_#00FFC5]"></div>
                          LINK DETECTED | <span id="gameTime">12:00 PM</span>
                     </div>
@@ -152,12 +238,14 @@
 
                 <div class="signal-bar">
                     <div class="webhook-container">
-                        <input type="password" id="agentWebhookUrl" class="sheikah-input text-sm" placeholder="Agent Webhook (Locked)">
-                        <svg onclick="toggleReveal('agentWebhookUrl', this)" class="webhook-reveal-btn" viewBox="0 0 1024 1024"><path d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896z m0 80a368 368 0 1 0 0 736 368 368 0 0 0 0-736z"/></svg>
+                        <label class="text-[10px] text-gray-500 tracking-widest font-mono whitespace-nowrap">AGENT NODE</label>
+                        <input type="password" id="agentWebhookUrl" class="sheikah-input text-sm" placeholder="Agent 智脑 Webhook (Locked)">
+                        <svg onclick="toggleReveal('agentWebhookUrl', this)" class="webhook-reveal-btn" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896z m0 80a368 368 0 1 0 0 736 368 368 0 0 0 0-736z m0 160a208 208 0 1 1 0 416 208 208 0 0 1 0-416z m0 80a128 128 0 1 0 0 256 128 128 0 0 0 0-256z"/><path d="M512 368m-48 0a48 48 0 1 0 96 0 48 48 0 1 0-96 0Z"/><path d="M512 144a368.5 368.5 0 0 0-333.1 213.7C152.1 411.5 128 461.6 128 512s24.1 100.5 50.9 154.3A368.5 368.5 0 0 0 512 880a368.5 368.5 0 0 0 333.1-213.7c26.8-53.8 50.9-103.9 50.9-154.3s-24.1-100.5-50.9-154.3A368.5 368.5 0 0 0 512 144zM512 800c-148.4 0-281.4-87.3-333.1-213.7C152.1 532.5 128 482.4 128 432s24.1-100.5 50.9-154.3A368.5 368.5 0 0 1 512 144a368.5 368.5 0 0 1 333.1 213.7C871.9 411.5 896 461.6 896 512s-24.1 100.5-50.9 154.3A368.5 368.5 0 0 1 512 880z"/></svg>
                     </div>
                     <div class="webhook-container">
+                        <label class="text-[10px] text-gray-500 tracking-widest font-mono whitespace-nowrap">KIE NODE</label>
                         <input type="password" id="webhookUrl" class="sheikah-input text-sm" placeholder="KIE 生图 Webhook (Locked)">
-                        <svg onclick="toggleReveal('webhookUrl', this)" class="webhook-reveal-btn" viewBox="0 0 1024 1024"><path d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896z m0 80a368 368 0 1 0 0 736 368 368 0 0 0 0-736z"/></svg>
+                        <svg onclick="toggleReveal('webhookUrl', this)" class="webhook-reveal-btn" viewBox="0 0 1024 1024" fill="currentColor"><path d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896z m0 80a368 368 0 1 0 0 736 368 368 0 0 0 0-736z m0 160a208 208 0 1 1 0 416 208 208 0 0 1 0-416z m0 80a128 128 0 1 0 0 256 128 128 0 0 0 0-256z"/><path d="M512 368m-48 0a48 48 0 1 0 96 0 48 48 0 1 0-96 0Z"/><path d="M512 144a368.5 368.5 0 0 0-333.1 213.7C152.1 411.5 128 461.6 128 512s24.1 100.5 50.9 154.3A368.5 368.5 0 0 0 512 880a368.5 368.5 0 0 0 333.1-213.7c26.8-53.8 50.9-103.9 50.9-154.3s-24.1-100.5-50.9-154.3A368.5 368.5 0 0 0 512 144zM512 800c-148.4 0-281.4-87.3-333.1-213.7C152.1 532.5 128 482.4 128 432s24.1-100.5 50.9-154.3A368.5 368.5 0 0 1 512 144a368.5 368.5 0 0 1 333.1 213.7C871.9 411.5 896 461.6 896 512s-24.1 100.5-50.9 154.3A368.5 368.5 0 0 1 512 880z"/></svg>
                     </div>
                 </div>
 
@@ -165,34 +253,80 @@
 
                 <div class="workspace-grid">
                     <div class="panel-glass">
-                        <h3 class="text-sm text-zonai-teal mb-3 italic tracking-widest">1. PRODUCT INTEL</h3>
-                        <select id="designScope" class="sheikah-input mb-3 text-sm" style="color: var(--zonai-teal);" onchange="handleScopeChange()">
-                            <option value="" disabled selected>👇 请选择图文输出范围...</option>
+                        <h3 class="text-sm text-zonai-teal mb-3 italic game-title uppercase tracking-widest">1. Product Intelligence</h3>
+                        
+                        <select id="designScope" class="sheikah-input mb-3 text-sm font-mono font-bold custom-scrollbar" style="color: var(--zonai-teal); border-color: rgba(0,255,197,0.3); background-color: rgba(0,0,0,0.8);" onchange="handleScopeChange()">
+                            <option value="" disabled selected>👉 请选择图文输出范围...</option>
                             <option value="main_and_6">主幅图7张</option>
+                            <option value="main_6_old_aplus">主幅图7张 + 5张老A+</option>
                             <option value="main_6_premium_aplus">主幅图7张 + 5张高级A+</option>
+                            <option value="old_aplus_only">纯5张老A+ 模块</option>
                             <option value="premium_aplus_only">纯5张高级A+ 模块</option>
-                            <option value="thd_only">THD要求图 7张</option>
+                            <option value="thd_only">THD要求图 7张 (无字/无人物)</option>
                         </select>
-                        <select id="targetMarket" class="sheikah-input mb-3 text-sm" style="color: var(--zonai-yellow);">
-                            <option value='{"market":"美国", "lang":"English"}'>🇺🇸 美国 (English)</option>
-                            <option value='{"market":"日本", "lang":"日本語"}'>🇯🇵 日本 (日本語)</option>
+
+                        <select id="targetMarket" class="sheikah-input mb-3 text-sm font-mono font-bold custom-scrollbar" style="color: var(--zonai-yellow); border-color: rgba(255,215,0,0.3); background-color: rgba(0,0,0,0.8);" onchange="saveAppState()">
+                            <optgroup label="🌎 北美及拉美战区 (Americas)">
+                                <option value='{"market":"美国", "lang":"English"}'>🇺🇸 美国 (US / English)</option>
+                                <option value='{"market":"加拿大", "lang":"English"}'>🇨🇦 加拿大 (CA / English)</option>
+                                <option value='{"market":"墨西哥", "lang":"Español"}'>🇲🇽 墨西哥 (MX / Español)</option>
+                            </optgroup>
+                            <optgroup label="🇪🇺 欧洲核心战区 (Europe)">
+                                <option value='{"market":"英国", "lang":"English"}'>🇬🇧 英国 (UK / English)</option>
+                                <option value='{"market":"德国", "lang":"Deutsch"}'>🇩🇪 德国 (DE / Deutsch)</option>
+                                <option value='{"market":"法国", "lang":"Français"}'>🇫🇷 法国 (FR / Français)</option>
+                                <option value='{"market":"意大利", "lang":"Italiano"}'>🇮🇹 意大利 (IT / Italiano)</option>
+                                <option value='{"market":"西班牙", "lang":"Español"}'>🇪🇸 西班牙 (ES / Español)</option>
+                            </optgroup>
+                            <optgroup label="🌏 亚太及华语战区 (Asia & CN)">
+                                <option value='{"market":"日本", "lang":"日本語"}'>🇯🇵 日本 (JP / 日本語)</option>
+                                <option value='{"market":"韩国", "lang":"한국어"}'>🇰🇷 韩国 (KR / 한국어)</option>
+                                <option value='{"market":"中国大陆", "lang":"简体中文"}'>🇨🇳 中国大陆 (CN / 简体中文)</option>
+                                <option value='{"market":"港澳台及海外华侨", "lang":"繁体中文"}'>🇭🇰 港澳台 (HK&TW / 繁體中文)</option>
+                            </optgroup>
+                            <optgroup label="🐪 中东新兴战区 (Middle East)">
+                                <option value='{"market":"中东地区", "lang":"العربية (Arabic)"}'>🇦🇪 中东地区 (Middle East / العربية)</option>
+                            </optgroup>
+                            <optgroup label="🌐 全球战略 (Global)">
+                                <option value='{"market":"全球通用(偏欧美审美)", "lang":"English"}'>🌍 全球通用 (Global / English)</option>
+                            </optgroup>
                         </select>
-                        <input type="text" id="prodName" class="sheikah-input mb-3 text-sm" placeholder="产品名称及特征...">
-                        <textarea id="prodDesc" class="flex-grow sheikah-input resize-none text-sm mb-3" placeholder="详细核心卖点描述..."></textarea>
-                        <button onclick="summonAgent()" id="agentBtn" class="btn-agent">SUMMON AGENT (一键构思)</button>
+
+                        <input type="text" id="prodName" class="sheikah-input mb-3 text-sm" placeholder="产品名称及物理特征..." oninput="saveAppState()">
+                        <textarea id="prodDesc" class="sheikah-input resize-none leading-relaxed text-sm mb-3 h-20" placeholder="详细核心卖点描述..." oninput="saveAppState()"></textarea>
+                        
+                        <textarea id="strictReq" class="h-12 shrink-0 sheikah-input resize-none leading-relaxed text-sm mb-3 border-red-500/50 focus:border-red-500 shadow-[inset_0_0_10px_rgba(255,0,0,0.1)]" placeholder="⚠️ [选填] 强硬设计需求 (如：必须白底，严禁人物...)" oninput="saveAppState()"></textarea>
+
+                        <button onclick="summonAgent()" id="agentBtn" class="btn-agent mt-auto">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 12 2.1 7.1"/><path d="M12 12l9.9 4.9"/></svg>
+                            SUMMON AGENT (一键构思)
+                        </button>
                     </div>
-                    <div class="panel-glass" id="dropZoneContainer">
-                        <h3 class="text-sm text-zonai-teal mb-3 italic tracking-widest">2. CARRIER</h3>
+
+                    <div class="panel-glass relative" id="dropZoneContainer">
+                        <h3 class="text-sm text-zonai-teal mb-3 italic game-title uppercase tracking-widest">2. Material Carrier</h3>
+                        
+                        <select id="uploadCategory" class="sheikah-input mb-3 text-xs font-mono font-bold custom-scrollbar" style="color: var(--zonai-teal); border-color: rgba(0,255,197,0.3); background-color: rgba(0,0,0,0.8);">
+                            <option value="产品主体图" selected>🟢 产品主体图 (至少1张)</option>
+                            <option value="功能展示图">🔵 功能展示图</option>
+                            <option value="材质细节图">🟣 材质细节图</option>
+                            <option value="尺寸图">📏 尺寸图</option>
+                            <option value="互动图">🤝 互动图</option>
+                            <option value="配件图">🧩 配件图</option>
+                            <option value="参数说明图">📊 参数说明图</option>
+                        </select>
+
                         <input type="file" id="fileInput" multiple accept="image/*" class="hidden">
-                        <label for="fileInput" id="dropZone" class="w-full h-24 border-2 border-dashed border-zonai-teal/30 rounded-xl flex flex-col items-center justify-center cursor-pointer mb-3">
-                            <div class="text-3xl mb-1">💎</div>
-                            <p class="text-[10px] text-gray-400">SELECT Category THEN Drop</p>
+                        <label for="fileInput" id="dropZone" class="w-full h-16 border-2 border-dashed border-zonai-teal/30 rounded-xl flex flex-col items-center justify-center cursor-pointer mb-3 hover:bg-zonai-teal/5 transition">
+                            <div class="text-xl mb-1">💎</div>
+                            <p class="text-[9px] text-gray-400 tracking-widest uppercase font-mono">Select Category ↑ Then Drop</p>
                         </label>
-                        <div id="materialPreviewGrid" class="grid grid-cols-3 gap-2 overflow-y-auto custom-scrollbar flex-grow"></div>
+                        <div id="materialPreviewGrid" class="grid grid-cols-3 gap-2 overflow-y-auto custom-scrollbar flex-grow content-start"></div>
                     </div>
+
                     <div class="panel-glass">
-                        <h3 class="text-sm text-zonai-teal mb-3 italic tracking-widest">3. SOP Commands</h3>
-                        <textarea id="sopText" class="flex-grow sheikah-input border-none bg-black/40 resize-none text-xs" placeholder="等待 Agent 注入神谕..."></textarea>
+                        <h3 class="text-sm text-zonai-teal mb-3 italic game-title uppercase tracking-widest">3. Fuse SOP Commands</h3>
+                        <textarea id="sopText" class="flex-grow sheikah-input border-none bg-black/40 resize-none leading-relaxed text-xs font-mono" placeholder="等待 Agent 注入神谕，或手动修改..." oninput="saveAppState()"></textarea>
                     </div>
                 </div>
 
@@ -207,110 +341,708 @@
 
             <section id="view-adventure-log" class="hidden h-full flex p-10 gap-10 overflow-hidden relative">
                 <div class="w-[380px] flex flex-col relative z-20">
-                    <header class="mb-6"><h2 class="text-6xl text-sheikah-blue italic tracking-widest">勇士上路吧</h2></header>
-                    <div id="logContent" class="flex-grow status-box-enhanced font-mono text-xs text-sheikah-blue/60 space-y-4">Waiting...</div>
+                    <header class="mb-6">
+                        <h2 class="text-6xl text-sheikah-blue italic game-title tracking-widest">勇士上路吧</h2>
+                        <span class="text-[10px] text-sheikah-blue/40 block mt-4 uppercase tracking-[0.4em] font-mono">Divine Quest Journal</span>
+                    </header>
+                    <div id="progressStatus" class="flex-grow status-box-enhanced font-mono text-xs space-y-4">
+                        <div class="text-sheikah-blue flex items-center gap-2"><div class="w-2 h-2 bg-sheikah-blue animate-ping"></div><span>SYSTEM STATUS: CONNECTED</span></div>
+                        <div id="logContent" class="text-sheikah-blue/60 leading-relaxed font-['PingFang SC']">等待左纳乌信号输入...</div>
+                    </div>
                     <div class="master-sword-container"><img src="Weapon_Sword_070.png" id="staticSword" onerror="this.style.display='none'"></div>
                     <div class="mt-4">
                         <div onclick="batchDownloadAll()" id="batchBtnContainer" class="btn-split-container">
                             <div class="btn-split-part btn-split-top font-mono">BATCH EXTRACT</div>
-                            <div class="btn-split-part btn-split-bottom font-mono">ALL MATERIALS</div>
+                            <div class="btn-split-part btn-split-bottom font-mono">AVAILABLE MATERIALS</div>
                         </div>
                     </div>
                 </div>
+                
                 <div class="flex-grow z-10" id="galleryContainer"></div>
             </section>
         </div>
     </div>
 
-    <div id="promptModal" class="prompt-modal-overlay"><div class="prompt-modal-box">...</div></div>
-    <div id="errorOverlay" class="error-overlay">...</div>
-
     <script>
         const SECRET_AGENT_URL = "https://zcaaron7.app.n8n.cloud/webhook/5830ed86-5a80-41fd-8803-54b0d8354be1";
         const SECRET_KIE_URL = "https://zcaaron7.app.n8n.cloud/webhook/dd38d62a-95ad-4127-8542-df93f7c98af2";
         const N8N_INPAINT_WEBHOOK = "https://zcaaron7.app.n8n.cloud/webhook/inpaint-v1"; 
-        const N8N_FEISHU_REPORT_WEBHOOK = "https://zcaaron7.app.n8n.cloud/webhook/feishu-report-v1"; // 请替换为实际域名的N8N
+        
+        // 👇 新增：专门对接飞书战报的 n8n Webhook 👇
+        const N8N_FEISHU_REPORT_WEBHOOK = "https://zcaaron7.app.n8n.cloud/webhook/feishu-report-v1"; 
 
-        const firebaseConfig = { apiKey: "AIzaSyDIhprsI0959enUNvqHRn6jqdACHGQE7Oo", authDomain: "sapient-hub-485206-a1.firebaseapp.com", databaseURL: "https://sapient-hub-485206-a1-default-rtdb.firebaseio.com", projectId: "sapient-hub-485206-a1", storageBucket: "sapient-hub-485206-a1.firebasestorage.app", appId: "1:1016880074231:web:135881dd3ef1989f7472f2" };
+        const SYSTEM_PWD = "3123119";
+        const OVERRIDE_PWD = "7758258";
+
+        const firebaseConfig = { apiKey: "AIzaSyDIhprsI0959enUNvqHRn6jqdACHGQE7Oo", authDomain: "sapient-hub-485206-a1.firebaseapp.com", databaseURL: "https://sapient-hub-485206-a1-default-rtdb.firebaseio.com", projectId: "sapient-hub-485206-a1", storageBucket: "sapient-hub-485206-a1.firebasestorage.app", messagingSenderId: "1016880074231", appId: "1:1016880074231:web:135881dd3ef1989f7472f2", measurementId: "G-5GNP4ET5JB" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
         const synth = new Tone.PolySynth(Tone.Synth).toDestination();
-        const playZeldaSound = (t) => { Tone.start(); const n = Tone.now(); if (t === 'victory') { synth.triggerAttackRelease("G4", "16n", n); synth.triggerAttackRelease("B4", "16n", n + 0.1); synth.triggerAttackRelease("D5", "16n", n + 0.2); synth.triggerAttackRelease("G5", "4n", n + 0.3); } else if (t === 'click') { synth.triggerAttackRelease("D4", "12n"); } else if (t === 'error') { synth.triggerAttackRelease("C3", "2n"); } else if (t === 'slash') { synth.triggerAttackRelease("G4", "32n", n); synth.triggerAttackRelease("C5", "32n", n+0.03); } };
-        function triggerError(t, d) { playZeldaSound('error'); const e = document.getElementById('errorOverlay'); e.innerHTML = `<div class="error-box"><div class="text-6xl animate-bounce">⚠️</div><h3 class="text-3xl text-red-500 font-black tracking-widest">${t}</h3><p class="text-red-300 text-lg">${d}</p><button onclick="document.getElementById('errorOverlay').style.display='none'" class="mt-8 px-12 py-3 bg-red-700 hover:bg-red-600 text-white rounded-full font-bold">确认</button></div>`; e.style.display = 'flex'; }
+
+        const playZeldaSound = (type) => {
+            Tone.start(); const now = Tone.now();
+            if (type === 'victory') { synth.triggerAttackRelease("G4", "16n", now); synth.triggerAttackRelease("B4", "16n", now + 0.1); synth.triggerAttackRelease("D5", "16n", now + 0.2); synth.triggerAttackRelease("F5", "16n", now + 0.3); synth.triggerAttackRelease("D5", "16n", now + 0.4); synth.triggerAttackRelease("B4", "16n", now + 0.5); synth.triggerAttackRelease("G5", "4n", now + 0.6); } 
+            else if (type === 'click') { synth.triggerAttackRelease(["D4", "G4", "D5"], "12n"); }
+            else if (type === 'error') { synth.triggerAttackRelease(["C3", "C#3"], "2n"); }
+            else if (type === 'slash') { synth.triggerAttackRelease("G4", "32n", now); synth.triggerAttackRelease("C5", "32n", now + 0.03); synth.triggerAttackRelease("G5", "32n", now + 0.06); }
+        };
+
+        function triggerError(title, desc) { playZeldaSound('error'); document.getElementById('errorTitle').innerText = title; document.getElementById('errorDesc').innerHTML = desc; document.getElementById('errorOverlay').style.display = 'flex'; }
         
+        function authenticateTerminal() {
+            const input = document.getElementById('terminalPwd').value;
+            if(input === SYSTEM_PWD) {
+                playZeldaSound('victory');
+                localStorage.setItem('hyrule_terminal_auth', 'GRANTED');
+                document.getElementById('authOverlay').style.opacity = '0';
+                setTimeout(() => { document.getElementById('authOverlay').style.display = 'none'; }, 500);
+                fillUrls();
+                loadAppState();
+            } else {
+                playZeldaSound('error');
+                const err = document.getElementById('authErrText');
+                err.style.opacity = '1';
+                document.getElementById('terminalPwd').value = '';
+                setTimeout(() => err.style.opacity = '0', 2000);
+            }
+        }
+
+        function fillUrls() {
+            document.getElementById('agentWebhookUrl').value = SECRET_AGENT_URL;
+            document.getElementById('webhookUrl').value = SECRET_KIE_URL;
+        }
+
+        window.onload = () => {
+            if (localStorage.getItem('hyrule_terminal_auth') === 'GRANTED') {
+                document.getElementById('authOverlay').style.display = 'none';
+                fillUrls();
+                loadAppState();
+            } else {
+                document.getElementById('authOverlay').style.display = 'flex';
+            }
+        };
+
+        function toggleReveal(inputId, btnEl) { 
+            playZeldaSound('click'); 
+            const input = document.getElementById(inputId); 
+            if (input.type === 'password') { 
+                const password = prompt("身份认证："); 
+                if (password === SYSTEM_PWD) { 
+                    input.type = 'text'; btnEl.style.color = '#FFD700'; btnEl.style.opacity = '1'; 
+                } else if (password !== null) { 
+                    playZeldaSound('error'); alert("⚠️ 认证失败"); 
+                } 
+            } else { 
+                input.type = 'password'; btnEl.style.color = ''; btnEl.style.opacity = ''; 
+            } 
+        }
+
         let imageSlots = new Array(12).fill(null);
         let globalMaterials = []; 
+        let activeAgentTask = null; 
         let activeKieTasks = []; 
 
-        function fillUrls() { document.getElementById('agentWebhookUrl').value = SECRET_AGENT_URL; document.getElementById('webhookUrl').value = SECRET_KIE_URL; }
-        window.onload = () => { if (localStorage.getItem('hyrule_auth') === 'G') { document.getElementById('authOverlay').style.display = 'none'; fillUrls(); loadAppState(); } };
-        function authenticateTerminal() { if (document.getElementById('terminalPwd').value === "3123119") { localStorage.setItem('hyrule_auth', 'G'); document.getElementById('authOverlay').style.display = 'none'; fillUrls(); loadAppState(); playZeldaSound('victory'); } else { triggerError('FAIL', '验证失败'); } }
-        function switchView(v, e) { playZeldaSound('click'); document.querySelectorAll('.dashboard-view, #view-adventure-log').forEach(x => x.classList.add('hidden')); document.getElementById(`view-${v}`).classList.remove('hidden'); document.querySelectorAll('.category-icon').forEach(x => x.classList.remove('active')); e.classList.add('active'); }
-        function saveAppState() { const s = { scope: document.getElementById('designScope').value, market: document.getElementById('targetMarket').value, name: document.getElementById('prodName').value, desc: document.getElementById('prodDesc').value, sop: document.getElementById('sopText').value, images: imageSlots }; localStorage.setItem('hyrule_state_v15', JSON.stringify(s)); const b = document.getElementById('mainBtn'); if (s.sop.trim()) { b.disabled = false; b.classList.add('ready-to-fuse'); } else { b.disabled = true; b.classList.remove('ready-to-fuse'); } }
-        function loadAppState() { 
-            // 🔴 修复乱码显示：检测并删除旧版 incompatible state 🔴
-            if(localStorage.getItem('hyrule_state_v13')) localStorage.removeItem('hyrule_state_v13');
-            const str = localStorage.getItem('hyrule_state_v15'); if (!str) return;
-            try { const s = JSON.parse(str); document.getElementById('designScope').value = s.scope || ''; document.getElementById('targetMarket').value = s.market || ''; document.getElementById('prodName').value = s.name || ''; document.getElementById('prodDesc').value = s.desc || ''; document.getElementById('sopText').value = s.sop || ''; imageSlots = s.images || new Array(12).fill(null); if (s.sop) document.getElementById('mainBtn').disabled = false; buildGalleryLayout(); imageSlots.forEach((img, i) => { if (img) renderSlot(i); }); } catch (e) {}
-        }
-        function handleScopeChange() { playZeldaSound('click'); imageSlots.fill(null); buildGalleryLayout(); saveAppState(); }
-        function toggleReveal(id, e) { playZeldaSound('click'); const i = document.getElementById(id); if (i.type === 'password') { i.type = 'text'; e.style.opacity = '1'; } else { i.type = 'password'; e.style.opacity = '0.5'; } }
-
-        // Dropzone & Materials omitted for brevity - logic remains the same
-
-        // 🟢 修复按钮卡死的关键：移除重复函数，保留完整逻辑 🟢
-        function renderSlot(idx) {
-            const slot = document.getElementById(`slot-${idx}`); if(!slot) return; slot.classList.remove('standby'); const data = imageSlots[idx];
-            const displayUrl = data.history ? data.history[data.currentIndex] : data.url;
-            slot.innerHTML = `<img src="${displayUrl}" crossorigin="anonymous"><div class="slot-actions" style="flex-direction: column; gap: 8px; padding: 10px;"><div class="flex items-center justify-between gap-2 w-full"><button onclick="triggerGeneration(${idx})" class="flex-1 text-[10px] border border-sheikah-blue py-1 rounded">REDRAW</button><button onclick="openEditModal(${idx})" class="flex-1 text-[10px] border border-sheikah-blue py-1 rounded">EDIT</button></div></div>`;
+        function saveAppState() {
+            const state = { 
+                designScope: document.getElementById('designScope').value,
+                targetMarket: document.getElementById('targetMarket').value, 
+                prodName: document.getElementById('prodName').value, 
+                prodDesc: document.getElementById('prodDesc').value, 
+                strictReq: document.getElementById('strictReq').value,
+                sopText: document.getElementById('sopText').value, 
+                imageSlots: imageSlots, 
+                activeAgentTask: activeAgentTask, 
+                activeKieTasks: activeKieTasks 
+            };
+            localStorage.setItem('hyrule_state_v13', JSON.stringify(state));
+            const kieBtn = document.getElementById('mainBtn');
+            if (document.getElementById('sopText').value.trim() !== '') { kieBtn.disabled = false; kieBtn.classList.add('ready-to-fuse'); } else { kieBtn.disabled = true; kieBtn.classList.remove('ready-to-fuse'); }
         }
 
-        function resumeKieListener(slotIdx, taskId) {
-            const slot = document.getElementById(`slot-${slotIdx}`); slot.classList.add('standby'); slot.innerHTML = `<div class="animate-pulse py-16 text-sheikah-blue">SYNCING</div>`;
-            const ref = db.ref('hyrule_tasks/' + taskId);
-            ref.on('value', (sn) => {
-                const d = sn.val(); if (!d) return;
-                if (d.status === 'completed') {
-                    imageSlots[slotIdx] = { url: d.imageUrl }; activeKieTasks = activeKieTasks.filter(t => t.slot !== slotIdx); saveAppState(); renderSlot(slotIdx); ref.off();
-                    // 🔴 新增自动侦测逻辑：全完了就截图 🔴
-                    if (activeKieTasks.length === 0) { setTimeout(() => { autoCaptureAndSyncToFeishu(); }, 2000); }
+        function loadAppState() {
+            const savedStr = localStorage.getItem('hyrule_state_v13'); if (!savedStr) return;
+            try {
+                const state = JSON.parse(savedStr);
+                if (state.designScope) document.getElementById('designScope').value = state.designScope;
+                if (state.targetMarket) document.getElementById('targetMarket').value = state.targetMarket;
+                if (state.prodName) document.getElementById('prodName').value = state.prodName;
+                if (state.prodDesc) document.getElementById('prodDesc').value = state.prodDesc;
+                if (state.strictReq) document.getElementById('strictReq').value = state.strictReq; 
+                if (state.sopText) { document.getElementById('sopText').value = state.sopText; const kieBtn = document.getElementById('mainBtn'); kieBtn.disabled = false; kieBtn.classList.add('ready-to-fuse'); }
+                
+                buildGalleryLayout();
+
+                if (state.imageSlots) { imageSlots = state.imageSlots; imageSlots.forEach((img, idx) => { if (img) renderSlot(idx); }); }
+                if (state.activeAgentTask) { activeAgentTask = state.activeAgentTask; resumeAgentListener(activeAgentTask); }
+                if (state.activeKieTasks && state.activeKieTasks.length > 0) { activeKieTasks = state.activeKieTasks; switchView('adventure-log', document.getElementById('nav-notes')); activeKieTasks.forEach(task => { resumeKieListener(task.slot, task.taskId); }); }
+            } catch (e) { console.error("读取记忆失败", e); }
+        }
+
+        function switchView(viewName, el) { playZeldaSound('click'); document.getElementById('view-dashboard').classList.add('hidden'); document.getElementById('view-adventure-log').classList.add('hidden'); if(viewName === 'dashboard') document.getElementById('view-dashboard').classList.remove('hidden'); else document.getElementById('view-adventure-log').classList.remove('hidden'); document.querySelectorAll('.category-icon').forEach(i => i.classList.remove('active')); el.classList.add('active'); }
+
+        const dropZone = document.getElementById('dropZone'); const fileInput = document.getElementById('fileInput');
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, preventDefaults, false)); function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+        ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.add('dropzone-active'), false)); ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.remove('dropzone-active'), false));
+        dropZone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files), false); fileInput.addEventListener('change', function() { handleFiles(this.files); this.value = ''; });
+
+        function updateFilenames() {
+            const counts = {};
+            globalMaterials.forEach(m => {
+                counts[m.category] = (counts[m.category] || 0) + 1;
+                m.filename = `${m.category}_${counts[m.category]}`;
+            });
+        }
+
+        function handleFiles(files) {
+            const currentCat = document.getElementById('uploadCategory').value;
+            const newFiles = Array.from(files).filter(f => f.type.startsWith('image/')); 
+            if(newFiles.length === 0) return;
+            if(globalMaterials.length + newFiles.length > 8) { triggerError('FULL', '最多支持 8 张参考图！'); return; } 
+            
+            playZeldaSound('click');
+            newFiles.forEach(file => { 
+                const reader = new FileReader(); 
+                reader.onload = (e) => { 
+                    globalMaterials.push({ 
+                        id: 'mat_' + Math.random().toString(36).substr(2, 9), 
+                        base64: e.target.result.split(',')[1], 
+                        preview: e.target.result,
+                        category: currentCat
+                    }); 
+                    updateFilenames();
+                    renderMaterialGrid(); 
+                }; 
+                reader.readAsDataURL(file); 
+            });
+        }
+
+        function removeMaterial(id) { 
+            playZeldaSound('click'); 
+            globalMaterials = globalMaterials.filter(m => m.id !== id); 
+            updateFilenames();
+            renderMaterialGrid(); 
+        }
+
+        function renderMaterialGrid() { 
+            const grid = document.getElementById('materialPreviewGrid'); 
+            grid.innerHTML = ''; 
+            globalMaterials.forEach(m => { 
+                const div = document.createElement('div'); 
+                div.className = 'relative group aspect-square rounded-xl border border-zonai-teal/30 bg-black/50 overflow-hidden flex items-center justify-center'; 
+                div.innerHTML = `
+                    <img src="${m.preview}" class="w-full h-full object-cover opacity-90 transition group-hover:opacity-40">
+                    <div class="absolute bottom-0 w-full bg-black/80 text-[8px] text-zonai-teal text-center py-1 font-mono break-all leading-tight">${m.filename}</div>
+                    <button onclick="removeMaterial('${m.id}')" class="absolute top-1 right-1 bg-red-600/90 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs z-10">✕</button>
+                `; 
+                grid.appendChild(div); 
+            }); 
+        }
+
+        let progressInterval = null;
+        
+        function abortAgentTask() {
+            playZeldaSound('click');
+            const pwd = prompt("警告：请确认 AGENT 运行已失败或卡死后再退回主页。\n请输入强制解除密码：");
+            if (pwd === OVERRIDE_PWD) {
+                playZeldaSound('error'); 
+                if(progressInterval) clearInterval(progressInterval);
+                document.getElementById('championsOverlay').classList.remove('show');
+                if (activeAgentTask) { db.ref('agent_tasks/' + activeAgentTask).off(); activeAgentTask = null; }
+                saveAppState(); alert("通信已强制切断！记忆死锁已清除，系统安全回退至战略大厅。");
+            } else if (pwd !== null) { alert("密码错误，拒绝切断精神链接！"); }
+        }
+
+        function resumeAgentListener(taskId) {
+            const overlay = document.getElementById('championsOverlay'); const progressBar = document.getElementById('shrineProgressBar'); const statusText = document.getElementById('shrineStatusText'); const kieBtn = document.getElementById('mainBtn');
+            overlay.classList.add('show'); overlay.classList.remove('finished'); progressBar.style.width = '0%'; statusText.innerText = "重新接驳远古数据流..."; 
+            let progress = 0; clearInterval(progressInterval);
+            progressInterval = setInterval(() => { if(progress < 99) { progress++; progressBar.style.width = progress + '%'; } }, 6000); 
+            
+            const ref = db.ref('agent_tasks/' + taskId);
+            ref.on('value', (snapshot) => {
+                const data = snapshot.val(); if (!data) return;
+                if (data.status === 'completed' && data.result) {
+                    clearInterval(progressInterval); progressBar.style.width = '100%'; document.getElementById('sopText').value = data.result; 
+                    activeAgentTask = null; saveAppState(); 
+                    playZeldaSound('victory'); overlay.classList.add('finished');
+                    setTimeout(() => { overlay.classList.remove('show', 'finished'); progressBar.style.width = '0%'; kieBtn.disabled = false; kieBtn.classList.add('ready-to-fuse'); }, 2500); ref.off();
+                } else if (data.status === 'failed' || data.status === 'error') {
+                    clearInterval(progressInterval); overlay.classList.remove('show'); activeAgentTask = null; saveAppState(); 
+                    triggerError('AGENT FAILED', '远端智脑运行出错，任务终止。'); ref.off();
                 }
             });
         }
 
-        async function triggerGeneration(targetIdx = null) {
-            const url = document.getElementById('webhookUrl').value; const sop = document.getElementById('sopText').value; const scope = document.getElementById('designScope').value;
-            if (!scope) { triggerError('MISSING', '请选择范围'); return; }
-            if (!url || !sop) { triggerError('ERROR', 'KIE 节点未就绪'); return; }
-            playZeldaSound('click'); switchView('adventure-log', document.getElementById('nav-notes'));
-            document.getElementById('logContent').innerText = "究极手调和中..."; const batchId = Date.now();
-            if(targetIdx === null) imageSlots.fill(null);
-            buildGalleryLayout(); // Reset view
-            const payload = { sop_text: sop, firebase_tasks: [] };
-            for(let i=0; i<12; i++) { if(document.getElementById(`slot-${i}`)) { const tid = `task_${batchId}_${i}`; if(targetIdx === null || targetIdx === i) { payload.firebase_tasks.push({ slot: i, taskId: tid }); activeKieTasks.push({ slot: i, taskId: tid }); resumeKieListener(i, tid); } } }
-            saveAppState();
-            try { await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } catch (e) { triggerError('NET ERR', '连接 KIE 节点失败'); }
-        }
+        async function summonAgent() {
+            const agentUrl = document.getElementById('agentWebhookUrl').value; 
+            const name = document.getElementById('prodName').value; 
+            const desc = document.getElementById('prodDesc').value; 
+            const strictReq = document.getElementById('strictReq').value;
+            const marketData = JSON.parse(document.getElementById('targetMarket').value);
+            const scope = document.getElementById('designScope').value;
 
-        // 🔴 新增：自动归档奥义 🔴
-        async function autoCaptureAndSyncToFeishu() {
-            const logEl = document.getElementById('logContent'); const prodName = document.getElementById('prodName').value || "未命名";
+            if (!scope) { triggerError('SCOPE MISSING', '请先在上方选择 [图文输出范围]！'); document.getElementById('designScope').focus(); return; }
+            if (!agentUrl || !name || !desc || globalMaterials.length === 0) { triggerError('MISSING INTEL', '情报不足！请填写文案并上传图片。'); return; }
+            
+            const hasMainImage = globalMaterials.some(m => m.category === '产品主体图');
+            if (!hasMainImage) { triggerError('MISSING MAIN IMAGE', '非法操作！图片库中必须包含至少一张【产品主体图】才能派发任务！'); return; }
+
+            playZeldaSound('click');
+            const agentTaskId = 'agent_' + Date.now(); activeAgentTask = agentTaskId; saveAppState(); resumeAgentListener(agentTaskId);
+
             try {
-                const canvas = await html2canvas(document.querySelector('.purah-pad'), { useCORS: true, allowTaint: true, scale: 1.5, backgroundColor: '#1A1614' });
-                canvas.toBlob(async (blob) => {
-                    logEl.innerText = "归档中..."; const rId = `report_${Date.now()}`;
-                    const ref = firebase.storage().ref().child(`hyrule_reports/${rId}.jpg`);
-                    await ref.put(blob); const reportUrl = await ref.getDownloadURL();
-                    const p = { product_name: prodName, report_url: reportUrl, timestamp: new Date().toISOString() };
-                    await fetch(N8N_FEISHU_REPORT_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) });
-                    logEl.innerHTML = "<span class='text-zonai-teal'>✅ 战报已自动成功归档至飞书！</span>";
-                }, 'image/jpeg', 0.8);
-            } catch (e) { logEl.innerHTML = "<span class='text-red-500'>❌ 归档失败，请检查 Firebase 规则。</span>"; }
+                const payloadImages = globalMaterials.map(m => m.base64); 
+                const categorizedImages = globalMaterials.map(m => ({ filename: m.filename, base64: m.base64 }));
+
+                const payload = { 
+                    product_name: name, 
+                    product_desc: desc, 
+                    strict_requirements: strictReq,
+                    images: payloadImages, 
+                    categorized_images: categorizedImages,
+                    agent_task_id: agentTaskId, 
+                    target_market: marketData.market, 
+                    target_lang: marketData.lang, 
+                    design_scope: scope 
+                };
+                const response = await fetch(agentUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`HTTP 错误: ${response.status}`);
+            } catch (err) { clearInterval(progressInterval); document.getElementById('championsOverlay').classList.remove('show'); activeAgentTask = null; saveAppState(); db.ref('agent_tasks/' + agentTaskId).off(); triggerError('NETWORK ERROR', '无法连接到远端智脑节点。'); }
         }
 
-        // Gallery Layout, Edit/Inpaint modals definitions omitted but present in final code - same as original file
-        function buildGalleryLayout() { /* ... Logic same as original for Scope parsing ... */ }
-        setInterval(() => { document.getElementById('gameTime').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }, 1000);
+        function getCurrentSlotTitles() {
+            const scope = document.getElementById('designScope').value;
+            let titles = new Array(12).fill(null); 
+            if (!scope) return titles;
+
+            if (scope.includes('main')) {
+                titles[0] = '【主图】';
+                for(let i=1; i<=6; i++) titles[i] = `【卖点图${i}】`;
+            }
+
+            if (scope.includes('thd')) {
+                titles[0] = '【THD白底图1: 纯净主图】';
+                titles[1] = '【THD白底图2: 多角度展示】';
+                titles[2] = '【THD白底图3: 产品尺寸图】';
+                titles[3] = '【THD场景图1: 空间环境】';
+                titles[4] = '【THD场景图2: 空间环境】';
+                titles[5] = '【THD场景图3: 空间环境】';
+                titles[6] = '【THD场景图4: 空间环境】';
+            }
+
+            if (scope.includes('old_aplus')) {
+                titles[7] = '【老版A+模块1: 顶部品牌画册横幅 (Hero Banner)】';
+                titles[8] = '【老版A+模块2: 隐性痛点的高级拆解】';
+                titles[9] = '【老版A+模块3: Cosmo 终极生活方式共鸣】';
+                titles[10] = '【老版A+模块4: 空间环境重构与生活方式】';
+                titles[11] = '【老版A+模块5: Rufus FAQ 极简收尾】';
+            }
+            if (scope.includes('premium_aplus')) {
+                titles[7] = '【高级A+模块1: 全宽幅沉浸式海报 (Editorial Hero)】';
+                titles[8] = '【高级A+模块2: Hormozi 极致价值感知特写】';
+                titles[9] = '【高级A+模块3: Cosmo 终极生活方式共鸣】';
+                titles[10] = '【高级A+模块4: 空间环境重构 (Environmental Storytelling)】';
+                titles[11] = '【高级A+模块5: 品牌心智收尾 (The Legacy)】';
+            }
+            return titles;
+        }
+
+        function handleScopeChange() {
+            playZeldaSound('click');
+            imageSlots = new Array(12).fill(null); 
+            buildGalleryLayout();
+            saveAppState();
+        }
+
+        function buildGalleryLayout() {
+            const scope = document.getElementById('designScope').value;
+            const container = document.getElementById('galleryContainer');
+            if(!scope) { container.innerHTML = ''; return; }
+
+            const titles = getCurrentSlotTitles();
+            let html = '<div class="gallery-wrapper custom-scrollbar">';
+
+            if (scope.includes('main') || scope.includes('thd')) {
+                html += `<div class="text-sheikah-blue font-bold tracking-widest mb-3 font-mono text-sm uppercase">Main Flow (1:1)</div>`;
+                html += `<div class="main-images-section">`;
+                for(let i=0; i<7; i++) if(titles[i]) html += buildSlotHtml(i, titles[i]);
+                html += `</div>`;
+            }
+
+            if (scope.includes('aplus')) {
+                html += `<div class="text-zonai-teal font-bold tracking-widest mt-8 mb-3 font-mono text-sm uppercase">A+ Assets (Wide)</div>`;
+                html += `<div class="aplus-images-section">`;
+                for(let i=7; i<12; i++) if(titles[i]) html += buildSlotHtml(i, titles[i]); 
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function buildSlotHtml(idx, titleName) {
+            return `
+            <div class="quest-slot standby" id="slot-${idx}">
+                <div class="opacity-30 text-sheikah-blue italic text-xs font-mono py-16 px-4 text-center">
+                    ${titleName}<br><span class="text-[10px] uppercase">Slot ${idx} Standby</span>
+                </div>
+            </div>`;
+        }
+
+        let currentEditingSlotIdx = -1;
+
+        function closeEditModal() { 
+            playZeldaSound('click'); 
+            document.getElementById('promptModal').classList.remove('show'); 
+        }
+
+        function openEditModal(idx) {
+            playZeldaSound('click'); 
+            const fullText = document.getElementById('sopText').value;
+            const titles = getCurrentSlotTitles();
+            if (!fullText) { triggerError('NO SOP DATA', '全局文本框中没有神谕文案，无法提取指令。'); return; }
+
+            currentEditingSlotIdx = idx;
+            const targetTitle = titles[idx];
+            if(!targetTitle) return;
+
+            document.getElementById('modalSlotTitle').innerText = `[ ${targetTitle.replace(/【|】/g, '')} ]`;
+
+            const coreMatch = targetTitle.match(/(主图|卖点图\d|老版A\+模块\d|高级A\+模块\d|THD白底图\d|THD场景图\d)/);
+            const coreKeyword = coreMatch ? coreMatch[0].replace('+', '\\+') : '未知';
+            
+            const regex = new RegExp('【[^】]*' + coreKeyword + '[^】]*】');
+            const match = fullText.match(regex);
+
+            if (!match) { 
+                triggerError('PARSE ERROR', `在全文中找不到包含【${coreMatch[0]}】的核心标签！\n请检查文案。`); 
+                return; 
+            }
+
+            let startIdx = match.index;
+            let endIdx = fullText.indexOf('【', startIdx + match[0].length);
+            if (endIdx === -1) endIdx = fullText.length; 
+
+            const extractedBlock = fullText.substring(startIdx, endIdx).trim();
+            document.getElementById('modalTextarea').value = extractedBlock;
+            document.getElementById('promptModal').classList.add('show');
+        }
+
+        function saveAndRedrawSingle() {
+            playZeldaSound('click'); 
+            const editedText = document.getElementById('modalTextarea').value; 
+            let fullText = document.getElementById('sopText').value;
+            const titles = getCurrentSlotTitles();
+            const targetTitle = titles[currentEditingSlotIdx];
+
+            const coreMatch = targetTitle.match(/(主图|卖点图\d|老版A\+模块\d|高级A\+模块\d|THD白底图\d|THD场景图\d)/);
+            const coreKeyword = coreMatch ? coreMatch[0].replace('+', '\\+') : '未知';
+            
+            const regex = new RegExp('【[^】]*' + coreKeyword + '[^】]*】');
+            const match = fullText.match(regex);
+
+            if (match) {
+                let startIdx = match.index;
+                let endIdx = fullText.indexOf('【', startIdx + match[0].length);
+                if (endIdx === -1) endIdx = fullText.length;
+                
+                const newFullText = fullText.substring(0, startIdx) + editedText + "\n\n" + fullText.substring(endIdx);
+                document.getElementById('sopText').value = newFullText;
+            }
+
+            saveAppState(); 
+            closeEditModal(); 
+            triggerGeneration(currentEditingSlotIdx);
+        }
+
+        async function fetchImageBlobBypassCORS(url) {
+            const cleanUrl = url.replace(/^https?:\/\//, ''); const proxies = [`https://wsrv.nl/?url=${encodeURIComponent(cleanUrl)}&output=jpg`, `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`];
+            for (let proxyUrl of proxies) { try { const res = await fetch(proxyUrl); if (res.ok) return await res.blob(); } catch (e) {} } throw new Error("CORS Blocked");
+        }
+
+        async function performMasterSwordSlash() { const sword = document.getElementById('staticSword'); playZeldaSound('slash'); sword.classList.remove('master-sword-swing'); void sword.offsetWidth; sword.classList.add('master-sword-swing'); return new Promise(r => setTimeout(() => r(), 500)); }
+
+        function resumeKieListener(slotIdx, taskId) {
+            const slot = document.getElementById(`slot-${slotIdx}`); slot.classList.remove('failed'); slot.classList.add('standby'); slot.innerHTML = `<div class="animate-pulse text-sheikah-blue italic text-xs tracking-widest font-mono py-16">RE-SYNCING...</div>`;
+            const ref = db.ref('hyrule_tasks/' + taskId);
+            ref.on('value', (snapshot) => {
+                const data = snapshot.val(); if (!data) return;
+                if (data.status === 'completed' && data.imageUrl) {
+                    imageSlots[slotIdx] = { url: data.imageUrl, id: taskId }; activeKieTasks = activeKieTasks.filter(t => t.slot !== slotIdx); saveAppState(); 
+                    renderSlot(slotIdx); slot.classList.remove('failed'); playZeldaSound('success'); ref.off();
+                    
+                    // 🔴 自动侦测：如果所有任务完成，执行静默截图归档
+                    if (activeKieTasks.length === 0) {
+                        document.getElementById('logContent').innerHTML = "<span class='text-zonai-yellow animate-pulse'>所有任务达成！准备静默捕获系统战报... 📸</span>";
+                        setTimeout(() => { autoCaptureAndSyncToFeishu(); }, 1500);
+                    }
+                } else if (data.status === 'failed') {
+                    activeKieTasks = activeKieTasks.filter(t => t.slot !== slotIdx); saveAppState();
+                    slot.classList.remove('standby'); slot.classList.add('failed'); 
+                    slot.innerHTML = `<div class="text-red-500 font-bold text-xs font-mono uppercase z-10 py-16">Gen Failed</div><div class="slot-actions"><div class="action-mini-btn" onclick="openEditModal(${slotIdx})">EDIT PROMPT</div><div class="action-mini-btn" onclick="triggerGeneration(${slotIdx})">RETRY</div></div>`; playZeldaSound('error'); ref.off();
+                }
+            });
+        }
+
+        // 🔴 自动捕获与发送飞书的引擎
+        async function autoCaptureAndSyncToFeishu() {
+            const logEl = document.getElementById('logContent');
+            const prodName = document.getElementById('prodName').value || "未命名产品";
+            
+            try {
+                const elementToCapture = document.querySelector('.purah-pad'); 
+                const canvas = await html2canvas(elementToCapture, {
+                    useCORS: true, 
+                    allowTaint: true,
+                    scale: 1.5,
+                    backgroundColor: '#1A1614',
+                    logging: false
+                });
+
+                canvas.toBlob(async (blob) => {
+                    if (!blob) throw new Error("画布捕获失败");
+                    
+                    logEl.innerHTML = "<span class='text-zonai-yellow'>战报捕获成功！正在归档至云端节点... ☁️</span>";
+                    
+                    const reportId = `report_${Date.now()}`;
+                    const storageRef = firebase.storage().ref();
+                    const reportRef = storageRef.child(`hyrule_reports/${reportId}.jpg`);
+                    await reportRef.put(blob);
+                    const reportImageUrl = await reportRef.getDownloadURL();
+
+                    logEl.innerHTML = "<span class='text-zonai-yellow'>云端同步完成，正在推送飞书自动化节点归档... 📡</span>";
+
+                    const payload = {
+                        product_name: prodName,
+                        report_url: reportImageUrl,
+                        timestamp: new Date().toISOString(),
+                        mission_type: document.getElementById('designScope').value,
+                        prod_desc: document.getElementById('prodDesc').value,
+                        strict_requirements: document.getElementById('strictReq').value
+                    };
+
+                    const response = await fetch(N8N_FEISHU_REPORT_WEBHOOK, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if(!response.ok) throw new Error("n8n 飞书战报归档节点拒绝访问");
+
+                    playZeldaSound('victory');
+                    logEl.innerHTML = "<span class='text-zonai-teal'>✅ 战略大厅战报已自动成功归档至飞书多维表格！</span>";
+                    setTimeout(() => { logEl.innerHTML = "等待左纳乌信号重新输入..."; }, 5000);
+
+                }, 'image/jpeg', 0.8);
+
+            } catch (err) {
+                console.error("自动战报归档失败:", err);
+                logEl.innerHTML = "<span class='text-red-500'>❌ 战报归档失败，请检查 Firebase rules 权限或 n8n 节点网络。</span>";
+            }
+        }
+
+        async function triggerGeneration(targetIdx = null) {
+            const url = document.getElementById('webhookUrl').value; 
+            const text = document.getElementById('sopText').value;
+            const strictReq = document.getElementById('strictReq').value;
+            const scope = document.getElementById('designScope').value;
+
+            if (!scope) { triggerError('SCOPE MISSING', '请在左侧面板选择输出范围。'); return; }
+            if (!url || !text || globalMaterials.length === 0) { triggerError('CONNECTION REFUSED', '要素不全。如果刚刷新了网页，请重新拖入参考图片。'); return; }
+            
+            const hasMainImage = globalMaterials.some(m => m.category === '产品主体图');
+            if (!hasMainImage) { triggerError('MISSING MAIN IMAGE', '非法操作！图片库中必须包含至少一张【产品主体图】才能派发作画任务！'); return; }
+
+            playZeldaSound('click'); const btn = document.getElementById('mainBtn'); btn.disabled = true; btn.classList.remove('ready-to-fuse'); btn.innerHTML = `RESONATING...`;
+            switchView('adventure-log', document.getElementById('nav-notes')); document.getElementById('logContent').innerHTML = "究极手共鸣中... 正在向云端派发作画任务。";
+
+            let generatedTasks = []; const batchId = Date.now();
+            const titles = getCurrentSlotTitles();
+
+            if(targetIdx === null) {
+                for(let i=0; i<12; i++) { 
+                    if(titles[i] !== null) {
+                        imageSlots[i] = null; const taskId = `task_${batchId}_${i}`; 
+                        generatedTasks.push({ slot: i, taskId: taskId }); activeKieTasks.push({ slot: i, taskId: taskId }); resumeKieListener(i, taskId); 
+                    }
+                }
+            } else { 
+                const taskId = `task_${batchId}_${targetIdx}`; generatedTasks.push({ slot: targetIdx, taskId: taskId }); activeKieTasks.push({ slot: targetIdx, taskId: taskId }); resumeKieListener(targetIdx, taskId); 
+            }
+            saveAppState(); 
+
+            try {
+                const payloadImages = globalMaterials.map(m => m.base64); 
+                const categorizedImages = globalMaterials.map(m => ({ filename: m.filename, base64: m.base64 }));
+
+                const payload = { 
+                    sop_text: text, 
+                    strict_requirements: strictReq,
+                    local_images_base64: payloadImages, 
+                    categorized_images: categorizedImages,
+                    redraw_index: targetIdx, 
+                    firebase_tasks: generatedTasks 
+                };
+                await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                btn.disabled = false; btn.innerHTML = `<img src="totk-what-were-your-favorite-ultrahand-creations-v0-c6lyir7oo06e1.png" class="ultrahand-icon-fixed"><span>究极手一键调和</span>`; document.getElementById('logContent').innerHTML = "任务已下发。Firebase 实时监听网络中...";
+            } catch (error) { 
+                btn.disabled = false; btn.innerHTML = `ERROR - RETRY`; triggerError('GENERATION FAILED', 'KIE 节点无响应。'); 
+                generatedTasks.forEach(task => { db.ref('hyrule_tasks/' + task.taskId).off(); activeKieTasks = activeKieTasks.filter(t => t.taskId !== task.taskId); }); saveAppState();
+            }
+        }
+
+        function renderSlot(idx) {
+            const slot = document.getElementById(`slot-${idx}`); 
+            if(!slot) return; 
+            slot.classList.remove('standby'); const data = imageSlots[idx];
+            
+            const displayUrl = data.history ? data.history[data.currentIndex] : data.url;
+
+            // 🔴 关键：<img> 加上 crossorigin="anonymous"
+            slot.innerHTML = `
+                <img src="${displayUrl}" crossorigin="anonymous">
+                <div class="slot-actions" style="flex-direction: column; gap: 8px; padding: 10px;">
+                    <div class="flex items-center justify-between gap-2 w-full">
+                        <button onclick="openEditModal(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                            EDIT
+                        </button>
+                        <button onclick="openInpaintModal(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                            INPAINT
+                        </button>
+                        <button onclick="triggerGeneration(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                            REDRAW
+                        </button>
+                    </div>
+                    <div class="w-full">
+                        <button onclick="downloadSingle(${idx})" class="w-full py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200 flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            DOWNLOAD
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        async function downloadSingle(idx) { const img = imageSlots[idx]; if(!img) return; await performMasterSwordSlash(); try { const blob = await fetchImageBlobBypassCORS(img.url); const blobUrl = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = blobUrl; a.download = `artifact_${idx}_${Date.now()}.jpg`; document.body.appendChild(a); a.click(); setTimeout(() => { window.URL.revokeObjectURL(blobUrl); document.body.removeChild(a); }, 500); } catch (e) { window.open(img.url, '_blank'); } }
+        async function batchDownloadAll() { const container = document.getElementById('batchBtnContainer'); const availableSlots = imageSlots.map((img, i) => img ? {img, i} : null).filter(s => s !== null); if(availableSlots.length === 0) { playZeldaSound('error'); return; } await performMasterSwordSlash(); container.classList.add('slashed'); try { const zip = new JSZip(); const promises = availableSlots.map(async (slotItem) => { const blob = await fetchImageBlobBypassCORS(slotItem.img.url); zip.file(`artifact_${slotItem.i}.jpg`, blob); }); await Promise.all(promises); const content = await zip.generateAsync({type:"blob"}); const zipUrl = window.URL.createObjectURL(content); const a = document.createElement('a'); a.style.display = 'none'; a.href = zipUrl; a.download = `Hyrule_Package_${Date.now()}.zip`; document.body.appendChild(a); a.click(); setTimeout(() => { window.URL.revokeObjectURL(zipUrl); document.body.removeChild(a); }, 500); } catch (e) { triggerError('ARCHIVE FAILED', '打包失败。'); } setTimeout(() => container.classList.remove('slashed'), 800); }
+        setInterval(() => { document.getElementById('gameTime').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }, 1000);
+
+        let inpaintSlotIdx = -1;
+        let isDrawing = false;
+        let canvasPaths = []; 
+        let currentPath = [];
+        let currentBrushColor = '#FF3333'; 
+
+        const inpaintCanvas = document.getElementById('inpaintCanvas');
+        const inpaintCtx = inpaintCanvas.getContext('2d', { willReadFrequently: true });
+        const inpaintImg = document.getElementById('inpaintBaseImg');
+
+        function changeBrushColor(color) { playZeldaSound('click'); currentBrushColor = color; }
+
+        function openInpaintModal(idx) {
+            playZeldaSound('click');
+            inpaintSlotIdx = idx;
+            const data = imageSlots[idx];
+            if(!data) return;
+
+            if(!data.history) { data.history = [data.url]; data.currentIndex = 0; }
+            document.getElementById('inpaintSlotTitle').innerText = `[ Slot ${idx} ]`;
+            document.getElementById('inpaintPrompt').value = ''; 
+            loadInpaintImage(data.history[data.currentIndex]); updateHistoryUI(data);
+            document.getElementById('inpaintModal').classList.add('show');
+        }
+
+        function loadInpaintImage(url) {
+            const proxyUrl = "https://wsrv.nl/?url=" + encodeURIComponent(url);
+            inpaintImg.crossOrigin = "anonymous";
+            inpaintImg.src = proxyUrl;
+            
+            inpaintImg.onload = () => {
+                inpaintCanvas.width = inpaintImg.clientWidth;
+                inpaintCanvas.height = inpaintImg.clientHeight;
+                clearCanvas(); 
+            };
+            inpaintImg.onerror = () => { inpaintImg.src = "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url); };
+        }
+
+        function closeInpaintModal() { playZeldaSound('click'); document.getElementById('inpaintModal').classList.remove('show'); }
+
+        function getMousePos(evt) { const rect = inpaintCanvas.getBoundingClientRect(); return { x: evt.clientX - rect.left, y: evt.clientY - rect.top }; }
+        inpaintCanvas.addEventListener('mousedown', (e) => { isDrawing = true; currentPath = [{ x: getMousePos(e).x, y: getMousePos(e).y }]; });
+        inpaintCanvas.addEventListener('mousemove', (e) => { if (!isDrawing) return; currentPath.push({ x: getMousePos(e).x, y: getMousePos(e).y }); redrawCanvas(); });
+        inpaintCanvas.addEventListener('mouseup', () => { if(!isDrawing) return; isDrawing = false; if (currentPath.length > 0) { canvasPaths.push({ path: currentPath, size: document.getElementById('brushSize').value, color: currentBrushColor }); } currentPath = []; });
+        inpaintCanvas.addEventListener('mouseout', () => { isDrawing = false; });
+
+        function redrawCanvas() {
+            inpaintCtx.clearRect(0, 0, inpaintCanvas.width, inpaintCanvas.height);
+            inpaintCtx.lineCap = 'round'; inpaintCtx.lineJoin = 'round';
+            canvasPaths.forEach(stroke => {
+                inpaintCtx.lineWidth = stroke.size; inpaintCtx.strokeStyle = stroke.color;
+                inpaintCtx.beginPath(); inpaintCtx.moveTo(stroke.path[0].x, stroke.path[0].y);
+                stroke.path.forEach(point => inpaintCtx.lineTo(point.x, point.y)); inpaintCtx.stroke();
+            });
+            if (currentPath.length > 0) {
+                inpaintCtx.lineWidth = document.getElementById('brushSize').value; inpaintCtx.strokeStyle = currentBrushColor;
+                inpaintCtx.beginPath(); inpaintCtx.moveTo(currentPath[0].x, currentPath[0].y);
+                currentPath.forEach(point => inpaintCtx.lineTo(point.x, point.y)); inpaintCtx.stroke();
+            }
+        }
+
+        function clearCanvas() { canvasPaths = []; currentPath = []; inpaintCtx.clearRect(0, 0, inpaintCanvas.width, inpaintCanvas.height); }
+        function undoBrush() { canvasPaths.pop(); redrawCanvas(); }
+
+        function updateHistoryUI(data) {
+            const controls = document.getElementById('historyControls');
+            if(data.history.length > 1) { controls.classList.remove('hidden'); document.getElementById('historyIndicator').innerText = `V.${data.currentIndex + 1} / ${data.history.length}`; } else { controls.classList.add('hidden'); }
+        }
+
+        function prevHistory() { playZeldaSound('click'); const data = imageSlots[inpaintSlotIdx]; if(data.currentIndex > 0) { data.currentIndex--; loadInpaintImage(data.history[data.currentIndex]); updateHistoryUI(data); renderSlot(inpaintSlotIdx); } }
+        function nextHistory() { playZeldaSound('click'); const data = imageSlots[inpaintSlotIdx]; if(data.currentIndex < data.history.length - 1) { data.currentIndex++; loadInpaintImage(data.history[data.currentIndex]); updateHistoryUI(data); renderSlot(inpaintSlotIdx); } }
+
+        async function sendInpaintTask() {
+            const prompt = document.getElementById('inpaintPrompt').value.trim();
+            if (!prompt) { triggerError('MISSING DIRECTIVE', '请填写神谕指令！'); return; }
+            if (canvasPaths.length === 0) { triggerError('NO ANNOTATION', '请在图片上涂抹标注区域！'); return; }
+
+            playZeldaSound('click');
+            const titles = getCurrentSlotTitles();
+            const targetTitle = titles[inpaintSlotIdx] || "";
+            let aspectRatio = "1:1";
+            if (targetTitle.includes("老版A+")) aspectRatio = "16:9";
+            if (targetTitle.includes("高级A+")) aspectRatio = "21:9";
+
+            const mergeCanvas = document.createElement('canvas');
+            mergeCanvas.width = inpaintCanvas.width; mergeCanvas.height = inpaintCanvas.height;
+            const mCtx = mergeCanvas.getContext('2d');
+            mCtx.drawImage(inpaintImg, 0, 0, mergeCanvas.width, mergeCanvas.height);
+            mCtx.drawImage(inpaintCanvas, 0, 0);
+
+            closeInpaintModal();
+            const slot = document.getElementById(`slot-${inpaintSlotIdx}`);
+            slot.classList.add('standby');
+            slot.innerHTML = `<div class="animate-pulse text-zonai-yellow italic text-xs tracking-widest font-mono py-16">UPLOADING & OVERWRITING...</div>`;
+
+            const taskId = `inpaint_${Date.now()}_${inpaintSlotIdx}`;
+
+            mergeCanvas.toBlob(async (blob) => {
+                if (!blob) { triggerError('RENDER ERROR', '图层合并失败，无法生成文件。'); renderSlot(inpaintSlotIdx); return; }
+                try {
+                    const storageRef = firebase.storage().ref();
+                    const maskRef = storageRef.child(`hyrule_masks/${taskId}.jpg`);
+                    await maskRef.put(blob);
+                    const uploadedImageUrl = await maskRef.getDownloadURL();
+
+                    const payload = { task_id: taskId, slot_idx: inpaintSlotIdx, prompt: prompt, aspect_ratio: aspectRatio, annotated_image_url: uploadedImageUrl };
+                    const response = await fetch(N8N_INPAINT_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if(!response.ok) throw new Error("n8n Webhook 无响应");
+
+                    activeKieTasks.push({ slot: inpaintSlotIdx, taskId: taskId, isInpaint: true });
+                    resumeKieListener(inpaintSlotIdx, taskId); 
+                } catch (error) { triggerError('CONNECTION ERROR', '与云端仓库断开连接或 n8n 拒绝访问。'); renderSlot(inpaintSlotIdx); }
+            }, 'image/jpeg', 0.95);
+        }
     </script>
 </body>
 </html>
