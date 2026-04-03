@@ -783,20 +783,52 @@
             });
         }
 
-       async function autoCaptureAndSyncToFeishu() {
+    async function autoCaptureAndSyncToFeishu() {
             const logEl = document.getElementById('logContent');
             const prodName = document.getElementById('prodName').value || "未命名产品";
             
             try {
-                // 1. 静默捕获 Purah Pad 网页界面 (.purah-pad)
-                const elementToCapture = document.querySelector('.purah-pad'); 
-                const canvas = await html2canvas(elementToCapture, {
+                // 1. 精准锁定第二页(输出页)，并强行撑开滚动条限制以截取长图
+                const targetEl = document.getElementById('view-adventure-log');
+                const galleryWrapper = document.querySelector('.gallery-wrapper');
+                const pad = document.querySelector('.purah-pad');
+
+                // 记录原有的样式
+                const oldPadHeight = pad.style.height;
+                const oldTargetHeight = targetEl.style.height;
+                const oldGalleryHeight = galleryWrapper ? galleryWrapper.style.height : '';
+                const oldGalleryOverflow = galleryWrapper ? galleryWrapper.style.overflow : '';
+
+                // 瞬间移除高度限制，让页面完全展平
+                pad.style.height = 'max-content';
+                targetEl.style.height = 'max-content';
+                targetEl.style.overflow = 'visible';
+                if (galleryWrapper) {
+                    galleryWrapper.style.height = 'max-content';
+                    galleryWrapper.style.overflow = 'visible';
+                }
+
+                // 停顿300毫秒，给浏览器时间把长图完全渲染出来
+                await new Promise(r => setTimeout(r, 300));
+
+                // 仅对第二页进行全长截图
+                const canvas = await html2canvas(targetEl, {
                     useCORS: true, 
                     allowTaint: true,
                     scale: 1.5,
                     backgroundColor: '#1A1614',
-                    logging: false
+                    logging: false,
+                    windowHeight: targetEl.scrollHeight // 强制获取完整的滚动高度
                 });
+
+                // 截图完成，瞬间恢复原本的 UI 样式（滚动条还原）
+                pad.style.height = oldPadHeight;
+                targetEl.style.height = oldTargetHeight;
+                targetEl.style.overflow = '';
+                if (galleryWrapper) {
+                    galleryWrapper.style.height = oldGalleryHeight;
+                    galleryWrapper.style.overflow = oldGalleryOverflow;
+                }
                 // 2. 将画布静默转换为 JPEG 图片 Blob 文件  
                 canvas.toBlob(async (blob) => {
                     if (!blob) throw new Error("画布捕获失败");
