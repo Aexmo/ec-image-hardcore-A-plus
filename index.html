@@ -620,14 +620,15 @@
                 for(let i=1; i<=6; i++) titles[i] = `【卖点图${i}】`;
             }
 
-            if (scope.includes('thd')) {
+           if (scope.includes('thd')) {
                 titles[0] = '【THD白底图1: 纯净主图】';
                 titles[1] = '【THD白底图2: 多角度展示】';
                 titles[2] = '【THD白底图3: 产品尺寸图】';
-                titles[3] = '【THD场景图1: 空间环境】';
-                titles[4] = '【THD场景图2: 空间环境】';
-                titles[5] = '【THD场景图3: 空间环境】';
-                titles[6] = '【THD场景图4: 空间环境】';
+                // 👇 仅仅修改下面这四行的数字，让它们变成 4, 5, 6, 7
+                titles[3] = '【THD场景图4: 空间环境】';
+                titles[4] = '【THD场景图5: 空间环境】';
+                titles[5] = '【THD场景图6: 空间环境】';
+                titles[6] = '【THD场景图7: 空间环境】';
             }
 
             if (scope.includes('old_aplus')) {
