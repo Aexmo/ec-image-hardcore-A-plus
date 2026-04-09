@@ -39,10 +39,10 @@
         .yahaha-img { height: 100%; object-fit: contain; }
 
         /* 修复面板拥挤：调整内部 padding */
-        .panel-glass { background: var(--terminal-bg); backdrop-filter: blur(60px); border: 1.5px solid rgba(0, 255, 197, 0.2); border-radius: 2rem; padding: 1.2rem; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        .panel-glass { background: var(--terminal-bg); backdrop-filter: blur(60px); border: 1.5px solid rgba(0, 255, 197, 0.2); border-radius: 2rem; padding: 1.2rem; position: relative; display: flex; flex-direction: column; }
         /* 修复面板拥挤：调整 3 个柱子的比例，中间传图区给最大的 1.2fr */
-        .workspace-grid { display: grid; grid-template-columns: 1fr 1.2fr 1.1fr; gap: 1rem; min-height: 0; }
-
+        .workspace-grid { display: grid; grid-template-columns: 1.3fr 1.6fr 0.7fr; gap: 1rem; min-height: 0; }
+        
         .btn-agent { width: 100%; background: rgba(0, 212, 255, 0.1); border: 2px solid var(--sheikah-blue); color: var(--sheikah-blue); border-radius: 1rem; padding: 0.8rem; font-weight: 900; font-size: 1rem; letter-spacing: 0.1em; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: auto; flex-shrink: 0; }
         .btn-agent:hover:not(:disabled) { background: var(--sheikah-blue); color: #000; box-shadow: 0 0 30px rgba(0, 212, 255, 0.5); }
         .btn-agent:disabled { border-color: #666; color: #666; cursor: not-allowed; }
@@ -58,7 +58,31 @@
 
         /* 海拉鲁生存技巧提示框专属样式 */
         .guide-tooltip { position: relative; display: inline-flex; align-items: center; justify-content: center; cursor: help; margin-left: 0.6rem; z-index: 100; }
-        .guide-tooltip .tooltip-content { visibility: hidden; width: 340px; background-color: rgba(10, 15, 20, 0.95); color: #e2e8f0; text-align: left; border-radius: 0.8rem; padding: 1.2rem; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid var(--zonai-yellow); box-shadow: 0 0 30px rgba(255, 215, 0, 0.2); font-size: 0.8rem; font-family: 'PingFang SC', sans-serif; line-height: 1.6; font-weight: normal; text-transform: none; letter-spacing: normal; pointer-events: none; }
+        .guide-tooltip .tooltip-content { 
+    visibility: hidden; 
+    width: 420px; /* 从 340px 放大到 420px */
+    background-color: rgba(10, 15, 20, 0.98); 
+    color: #e2e8f0; 
+    text-align: left; 
+    border-radius: 0.8rem; 
+    padding: 1.5rem; /* 放大了内边距 */
+    position: absolute; 
+    bottom: 130%; 
+    left: 50%; 
+    transform: translateX(-50%); 
+    opacity: 0; 
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    border: 1px solid var(--zonai-yellow); 
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.3); 
+    font-size: 0.95rem; /* 字号从 0.8rem 放大到了 0.95rem */
+    font-family: 'PingFang SC', sans-serif; 
+    line-height: 1.7; 
+    font-weight: normal; 
+    text-transform: none; 
+    letter-spacing: normal; 
+    pointer-events: none; 
+    z-index: 9999; /* 强制绝对置顶，绝不会被其他元素挡住 */
+}
         .guide-tooltip:hover .tooltip-content { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(-5px); }
         .guide-tooltip .tooltip-content::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: var(--zonai-yellow) transparent transparent transparent; }
 
