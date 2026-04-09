@@ -588,19 +588,541 @@
             });
         }
 
-        // ==========================================
-        // 请将你原本文件中，被截断的底层核心业务逻辑
-        // (如 summonAgent(), triggerGeneration() 等所有函数)
-        // 原封不动地粘贴在下方。
-        //
-        // 【唯一要注意的修改】：
-        // 如果你的发送请求代码里有：
-        // let webhookUrl = document.getElementById('agentWebhookUrl').value;
-        // 请务必直接把它改成：
-        // let webhookUrl = SECRET_AGENT_URL;
-        // (如果是生图接口，就改成 SECRET_KIE_URL;)
-        // ==========================================
+      let progressInterval = null;
         
+        function abortAgentTask() {
+            playZeldaSound('click');
+            const pwd = prompt("警告：请确认 AGENT 运行已失败或卡死后再退回主页。\n请输入强制解除密码：");
+            if (pwd === OVERRIDE_PWD) {
+                playZeldaSound('error'); 
+                if(progressInterval) clearInterval(progressInterval);
+                document.getElementById('championsOverlay').classList.remove('show');
+                if (activeAgentTask) { db.ref('agent_tasks/' + activeAgentTask).off(); activeAgentTask = null; }
+                saveAppState(); alert("通信已强制切断！记忆死锁已清除，系统安全回退至战略大厅。");
+            } else if (pwd !== null) { alert("密码错误，拒绝切断精神链接！"); }
+        }
+
+        function resumeAgentListener(taskId) {
+            const overlay = document.getElementById('championsOverlay'); const progressBar = document.getElementById('shrineProgressBar'); const statusText = document.getElementById('shrineStatusText'); const kieBtn = document.getElementById('mainBtn');
+            overlay.classList.add('show'); overlay.classList.remove('finished'); progressBar.style.width = '0%'; statusText.innerText = "重新接驳远古数据流..."; 
+            let progress = 0; clearInterval(progressInterval);
+            progressInterval = setInterval(() => { if(progress < 99) { progress++; progressBar.style.width = progress + '%'; } }, 6000); 
+            
+            const ref = db.ref('agent_tasks/' + taskId);
+            ref.on('value', (snapshot) => {
+                const data = snapshot.val(); if (!data) return;
+                if (data.status === 'completed' && data.result) {
+                    clearInterval(progressInterval); progressBar.style.width = '100%'; document.getElementById('sopText').value = data.result; 
+                    activeAgentTask = null; saveAppState(); 
+                    playZeldaSound('victory'); overlay.classList.add('finished');
+                    setTimeout(() => { overlay.classList.remove('show', 'finished'); progressBar.style.width = '0%'; kieBtn.disabled = false; kieBtn.classList.add('ready-to-fuse'); }, 2500); ref.off();
+                } else if (data.status === 'failed' || data.status === 'error') {
+                    clearInterval(progressInterval); overlay.classList.remove('show'); activeAgentTask = null; saveAppState(); 
+                    triggerError('AGENT FAILED', '远端智脑运行出错，任务终止。'); ref.off();
+                }
+            });
+        }
+
+        async function summonAgent() {
+            const agentUrl = document.getElementById('agentWebhookUrl').value; 
+            const name = document.getElementById('prodName').value; 
+            const desc = document.getElementById('prodDesc').value; 
+            const strictReq = document.getElementById('strictReq').value;
+            const marketData = JSON.parse(document.getElementById('targetMarket').value);
+            const scope = document.getElementById('designScope').value;
+
+            if (!scope) { triggerError('SCOPE MISSING', '请先在上方选择 [图文输出范围]！'); document.getElementById('designScope').focus(); return; }
+            if (!agentUrl || !name || !desc || globalMaterials.length === 0) { triggerError('MISSING INTEL', '情报不足！请填写文案并上传图片。'); return; }
+            
+            const hasMainImage = globalMaterials.some(m => m.category === '产品主体图');
+            if (!hasMainImage) { triggerError('MISSING MAIN IMAGE', '非法操作！图片库中必须包含至少一张【产品主体图】才能派发任务！'); return; }
+
+            playZeldaSound('click');
+            const agentTaskId = 'agent_' + Date.now(); activeAgentTask = agentTaskId; saveAppState(); resumeAgentListener(agentTaskId);
+
+            try {
+                const payloadImages = globalMaterials.map(m => m.base64); 
+                const categorizedImages = globalMaterials.map(m => ({ filename: m.filename, base64: m.base64 }));
+
+                const payload = { 
+                    product_name: name, 
+                    product_desc: desc, 
+                    strict_requirements: strictReq,
+                    images: payloadImages, 
+                    categorized_images: categorizedImages,
+                    agent_task_id: agentTaskId, 
+                    target_market: marketData.market, 
+                    target_lang: marketData.lang, 
+                    design_scope: scope 
+                };
+                const response = await fetch(agentUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`HTTP 错误: ${response.status}`);
+            } catch (err) { clearInterval(progressInterval); document.getElementById('championsOverlay').classList.remove('show'); activeAgentTask = null; saveAppState(); db.ref('agent_tasks/' + agentTaskId).off(); triggerError('NETWORK ERROR', '无法连接到远端智脑节点。'); }
+        }
+
+        function getCurrentSlotTitles() {
+            const scope = document.getElementById('designScope').value;
+            let titles = new Array(12).fill(null); 
+            if (!scope) return titles;
+
+            if (scope.includes('main')) {
+                titles[0] = '【主图】';
+                for(let i=1; i<=6; i++) titles[i] = `【卖点图${i}】`;
+            }
+
+           if (scope.includes('thd')) {
+                titles[0] = '【THD白底图1: 纯净主图】';
+                titles[1] = '【THD白底图2: 多角度展示】';
+                titles[2] = '【THD白底图3: 产品尺寸图】';
+                // 👇 仅仅修改下面这四行的数字，让它们变成 4, 5, 6, 7
+                titles[3] = '【THD场景图4: 空间环境】';
+                titles[4] = '【THD场景图5: 空间环境】';
+                titles[5] = '【THD场景图6: 空间环境】';
+                titles[6] = '【THD场景图7: 空间环境】';
+            }
+
+            if (scope.includes('old_aplus')) {
+                titles[7] = '【老版A+模块1: 顶部品牌画册横幅 (Hero Banner)】';
+                titles[8] = '【老版A+模块2: 隐性痛点的高级拆解】';
+                titles[9] = '【老版A+模块3: Cosmo 终极生活方式共鸣】';
+                titles[10] = '【老版A+模块4: 空间环境重构与生活方式】';
+                titles[11] = '【老版A+模块5: Rufus FAQ 极简收尾】';
+            }
+            if (scope.includes('premium_aplus')) {
+                titles[7] = '【高级A+模块1: 全宽幅沉浸式海报 (Editorial Hero)】';
+                titles[8] = '【高级A+模块2: Hormozi 极致价值感知特写】';
+                titles[9] = '【高级A+模块3: Cosmo 终极生活方式共鸣】';
+                titles[10] = '【高级A+模块4: 空间环境重构 (Environmental Storytelling)】';
+                titles[11] = '【高级A+模块5: 品牌心智收尾 (The Legacy)】';
+            }
+            return titles;
+        }
+
+        function handleScopeChange() {
+            playZeldaSound('click');
+            imageSlots = new Array(12).fill(null); 
+            buildGalleryLayout();
+            saveAppState();
+        }
+
+        function buildGalleryLayout() {
+            const scope = document.getElementById('designScope').value;
+            const container = document.getElementById('galleryContainer');
+            if(!scope) { container.innerHTML = ''; return; }
+
+            const titles = getCurrentSlotTitles();
+            let html = '<div class="gallery-wrapper custom-scrollbar">';
+
+            if (scope.includes('main') || scope.includes('thd')) {
+                html += `<div class="text-sheikah-blue font-bold tracking-widest mb-3 font-mono text-sm uppercase">Main Flow (1:1)</div>`;
+                html += `<div class="main-images-section">`;
+                for(let i=0; i<7; i++) if(titles[i]) html += buildSlotHtml(i, titles[i]);
+                html += `</div>`;
+            }
+
+            if (scope.includes('aplus')) {
+                html += `<div class="text-zonai-teal font-bold tracking-widest mt-8 mb-3 font-mono text-sm uppercase">A+ Assets (Wide)</div>`;
+                html += `<div class="aplus-images-section">`;
+                for(let i=7; i<12; i++) if(titles[i]) html += buildSlotHtml(i, titles[i]); 
+                html += `</div>`;
+            }
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        function buildSlotHtml(idx, titleName) {
+            return `
+            <div class="quest-slot standby" id="slot-${idx}">
+                <div class="opacity-30 text-sheikah-blue italic text-xs font-mono py-16 px-4 text-center">
+                    ${titleName}<br><span class="text-[10px] uppercase">Slot ${idx} Standby</span>
+                </div>
+            </div>`;
+        }
+
+        let currentEditingSlotIdx = -1;
+
+        function closeEditModal() { 
+            playZeldaSound('click'); 
+            document.getElementById('promptModal').classList.remove('show'); 
+        }
+
+        function openEditModal(idx) {
+            playZeldaSound('click'); 
+            const fullText = document.getElementById('sopText').value;
+            const titles = getCurrentSlotTitles();
+            if (!fullText) { triggerError('NO SOP DATA', '全局文本框中没有神谕文案，无法提取指令。'); return; }
+
+            currentEditingSlotIdx = idx;
+            const targetTitle = titles[idx];
+            if(!targetTitle) return;
+
+            document.getElementById('modalSlotTitle').innerText = `[ ${targetTitle.replace(/【|】/g, '')} ]`;
+
+            const coreMatch = targetTitle.match(/(主图|卖点图\d|老版A\+模块\d|高级A\+模块\d|THD白底图\d|THD场景图\d)/);
+            const coreKeyword = coreMatch ? coreMatch[0].replace('+', '\\+') : '未知';
+            
+            const regex = new RegExp('【[^】]*' + coreKeyword + '[^】]*】');
+            const match = fullText.match(regex);
+
+            if (!match) { 
+                triggerError('PARSE ERROR', `在全文中找不到包含【${coreMatch[0]}】的核心标签！\n请检查文案。`); 
+                return; 
+            }
+
+            let startIdx = match.index;
+            let endIdx = fullText.indexOf('【', startIdx + match[0].length);
+            if (endIdx === -1) endIdx = fullText.length; 
+
+            const extractedBlock = fullText.substring(startIdx, endIdx).trim();
+            document.getElementById('modalTextarea').value = extractedBlock;
+            document.getElementById('promptModal').classList.add('show');
+        }
+
+        function saveAndRedrawSingle() {
+            playZeldaSound('click'); 
+            const editedText = document.getElementById('modalTextarea').value; 
+            let fullText = document.getElementById('sopText').value;
+            const titles = getCurrentSlotTitles();
+            const targetTitle = titles[currentEditingSlotIdx];
+
+            const coreMatch = targetTitle.match(/(主图|卖点图\d|老版A\+模块\d|高级A\+模块\d|THD白底图\d|THD场景图\d)/);
+            const coreKeyword = coreMatch ? coreMatch[0].replace('+', '\\+') : '未知';
+            
+            const regex = new RegExp('【[^】]*' + coreKeyword + '[^】]*】');
+            const match = fullText.match(regex);
+
+            if (match) {
+                let startIdx = match.index;
+                let endIdx = fullText.indexOf('【', startIdx + match[0].length);
+                if (endIdx === -1) endIdx = fullText.length;
+                
+                const newFullText = fullText.substring(0, startIdx) + editedText + "\n\n" + fullText.substring(endIdx);
+                document.getElementById('sopText').value = newFullText;
+            }
+
+            saveAppState(); 
+            closeEditModal(); 
+            triggerGeneration(currentEditingSlotIdx);
+        }
+
+        async function fetchImageBlobBypassCORS(url) {
+            const cleanUrl = url.replace(/^https?:\/\//, ''); const proxies = [`https://wsrv.nl/?url=${encodeURIComponent(cleanUrl)}&output=jpg`, `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`];
+            for (let proxyUrl of proxies) { try { const res = await fetch(proxyUrl); if (res.ok) return await res.blob(); } catch (e) {} } throw new Error("CORS Blocked");
+        }
+
+        async function performMasterSwordSlash() { const sword = document.getElementById('staticSword'); playZeldaSound('slash'); sword.classList.remove('master-sword-swing'); void sword.offsetWidth; sword.classList.add('master-sword-swing'); return new Promise(r => setTimeout(() => r(), 500)); }
+
+        function resumeKieListener(slotIdx, taskId) {
+            const slot = document.getElementById(`slot-${slotIdx}`); slot.classList.remove('failed'); slot.classList.add('standby'); slot.innerHTML = `<div class="animate-pulse text-sheikah-blue italic text-xs tracking-widest font-mono py-16">RE-SYNCING...</div>`;
+            const ref = db.ref('hyrule_tasks/' + taskId);
+            ref.on('value', (snapshot) => {
+                const data = snapshot.val(); if (!data) return;
+                if (data.status === 'completed' && data.imageUrl) {
+                    imageSlots[slotIdx] = { url: data.imageUrl, id: taskId }; activeKieTasks = activeKieTasks.filter(t => t.slot !== slotIdx); saveAppState(); 
+                    renderSlot(slotIdx); slot.classList.remove('failed'); playZeldaSound('success'); ref.off();
+                    
+                    if (activeKieTasks.length === 0) {
+                        document.getElementById('logContent').innerHTML = "<span class='text-zonai-yellow animate-pulse'>所有任务达成！准备静默捕获系统战报... 📸</span>";
+                        setTimeout(() => { autoCaptureAndSyncToFeishu(); }, 1500);
+                    }
+                } else if (data.status === 'failed') {
+                    activeKieTasks = activeKieTasks.filter(t => t.slot !== slotIdx); saveAppState();
+                    slot.classList.remove('standby'); slot.classList.add('failed'); 
+                    slot.innerHTML = `<div class="text-red-500 font-bold text-xs font-mono uppercase z-10 py-16">Gen Failed</div><div class="slot-actions"><div class="action-mini-btn" onclick="openEditModal(${slotIdx})">EDIT PROMPT</div><div class="action-mini-btn" onclick="triggerGeneration(${slotIdx})">RETRY</div></div>`; playZeldaSound('error'); ref.off();
+                }
+            });
+        }
+
+    async function autoCaptureAndSyncToFeishu() {
+            const logEl = document.getElementById('logContent');
+            const prodName = document.getElementById('prodName').value || "未命名产品";
+            
+            try {
+                // 1. 精准锁定第二页(输出页)，并强行撑开滚动条限制以截取长图
+                const targetEl = document.getElementById('view-adventure-log');
+                const galleryWrapper = document.querySelector('.gallery-wrapper');
+                const pad = document.querySelector('.purah-pad');
+
+                // 记录原有的样式
+                const oldPadHeight = pad.style.height;
+                const oldTargetHeight = targetEl.style.height;
+                const oldGalleryHeight = galleryWrapper ? galleryWrapper.style.height : '';
+                const oldGalleryOverflow = galleryWrapper ? galleryWrapper.style.overflow : '';
+
+                // 瞬间移除高度限制，让页面完全展平
+                pad.style.height = 'max-content';
+                targetEl.style.height = 'max-content';
+                targetEl.style.overflow = 'visible';
+                if (galleryWrapper) {
+                    galleryWrapper.style.height = 'max-content';
+                    galleryWrapper.style.overflow = 'visible';
+                }
+
+                // 停顿300毫秒，给浏览器时间把长图完全渲染出来
+                await new Promise(r => setTimeout(r, 300));
+
+                // 仅对第二页进行全长截图
+                const canvas = await html2canvas(targetEl, {
+                    useCORS: true, 
+                    allowTaint: true,
+                    scale: 1.5,
+                    backgroundColor: '#1A1614',
+                    logging: false,
+                    windowHeight: targetEl.scrollHeight // 强制获取完整的滚动高度
+                });
+
+                // 截图完成，瞬间恢复原本的 UI 样式（滚动条还原）
+                pad.style.height = oldPadHeight;
+                targetEl.style.height = oldTargetHeight;
+                targetEl.style.overflow = '';
+                if (galleryWrapper) {
+                    galleryWrapper.style.height = oldGalleryHeight;
+                    galleryWrapper.style.overflow = oldGalleryOverflow;
+                }
+                // 2. 将画布静默转换为 JPEG 图片 Blob 文件  
+                canvas.toBlob(async (blob) => {
+                    if (!blob) throw new Error("画布捕获失败");
+                    
+                    logEl.innerHTML = "<span class='text-zonai-yellow'>战报捕获成功！正在归档至云端节点... ☁️</span>";
+                    
+                    const reportId = `report_${Date.now()}`;
+                    const storageRef = firebase.storage().ref();
+                    const reportRef = storageRef.child(`hyrule_reports/${reportId}.jpg`);
+                    await reportRef.put(blob);
+                    const reportImageUrl = await reportRef.getDownloadURL();
+
+                    logEl.innerHTML = "<span class='text-zonai-yellow'>云端同步完成，正在推送飞书自动化节点归档... 📡</span>";
+
+                    const payload = {
+                        product_name: prodName,
+                        report_url: reportImageUrl,
+                        timestamp: new Date().toISOString(),
+                        mission_type: document.getElementById('designScope').value,
+                        prod_desc: document.getElementById('prodDesc').value,
+                        strict_requirements: document.getElementById('strictReq').value
+                    };
+
+                    const response = await fetch(N8N_FEISHU_REPORT_WEBHOOK, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if(!response.ok) throw new Error("n8n 飞书战报归档节点拒绝访问");
+
+                    playZeldaSound('victory');
+                    logEl.innerHTML = "<span class='text-zonai-teal'>✅ 战略大厅战报已自动成功归档至飞书多维表格！</span>";
+                    setTimeout(() => { logEl.innerHTML = "等待左纳乌信号重新输入..."; }, 5000);
+
+                }, 'image/jpeg', 0.8);
+
+            } catch (err) {
+                console.error("自动战报归档失败:", err);
+                logEl.innerHTML = "<span class='text-red-500'>❌ 战报归档失败，请检查 Firebase rules 权限或 n8n 节点网络。</span>";
+            }
+        }
+
+        async function triggerGeneration(targetIdx = null) {
+            const url = document.getElementById('webhookUrl').value; 
+            const text = document.getElementById('sopText').value;
+            const strictReq = document.getElementById('strictReq').value;
+            const scope = document.getElementById('designScope').value;
+
+            if (!scope) { triggerError('SCOPE MISSING', '请在左侧面板选择输出范围。'); return; }
+            if (!url || !text || globalMaterials.length === 0) { triggerError('CONNECTION REFUSED', '要素不全。如果刚刷新了网页，请重新拖入参考图片。'); return; }
+            
+            const hasMainImage = globalMaterials.some(m => m.category === '产品主体图');
+            if (!hasMainImage) { triggerError('MISSING MAIN IMAGE', '非法操作！图片库中必须包含至少一张【产品主体图】才能派发作画任务！'); return; }
+
+            playZeldaSound('click'); const btn = document.getElementById('mainBtn'); btn.disabled = true; btn.classList.remove('ready-to-fuse'); btn.innerHTML = `RESONATING...`;
+            switchView('adventure-log', document.getElementById('nav-notes')); document.getElementById('logContent').innerHTML = "究极手共鸣中... 正在向云端派发作画任务。";
+
+            let generatedTasks = []; const batchId = Date.now();
+            const titles = getCurrentSlotTitles();
+
+            if(targetIdx === null) {
+                for(let i=0; i<12; i++) { 
+                    if(titles[i] !== null) {
+                        imageSlots[i] = null; const taskId = `task_${batchId}_${i}`; 
+                        generatedTasks.push({ slot: i, taskId: taskId }); activeKieTasks.push({ slot: i, taskId: taskId }); resumeKieListener(i, taskId); 
+                    }
+                }
+            } else { 
+                const taskId = `task_${batchId}_${targetIdx}`; generatedTasks.push({ slot: targetIdx, taskId: taskId }); activeKieTasks.push({ slot: targetIdx, taskId: taskId }); resumeKieListener(targetIdx, taskId); 
+            }
+            saveAppState(); 
+
+            try {
+                const payloadImages = globalMaterials.map(m => m.base64); 
+                const categorizedImages = globalMaterials.map(m => ({ filename: m.filename, base64: m.base64 }));
+
+                const payload = { 
+                    sop_text: text, 
+                    strict_requirements: strictReq,
+                    local_images_base64: payloadImages, 
+                    categorized_images: categorizedImages,
+                    redraw_index: targetIdx, 
+                    firebase_tasks: generatedTasks 
+                };
+                await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                btn.disabled = false; btn.innerHTML = `<img src="totk-what-were-your-favorite-ultrahand-creations-v0-c6lyir7oo06e1.png" class="ultrahand-icon-fixed"><span>究极手一键调和</span>`; document.getElementById('logContent').innerHTML = "任务已下发。Firebase 实时监听网络中...";
+            } catch (error) { 
+                btn.disabled = false; btn.innerHTML = `ERROR - RETRY`; triggerError('GENERATION FAILED', 'KIE 节点无响应。'); 
+                generatedTasks.forEach(task => { db.ref('hyrule_tasks/' + task.taskId).off(); activeKieTasks = activeKieTasks.filter(t => t.taskId !== task.taskId); }); saveAppState();
+            }
+        }
+
+        function renderSlot(idx) {
+            const slot = document.getElementById(`slot-${idx}`); 
+            if(!slot) return; 
+            slot.classList.remove('standby'); const data = imageSlots[idx];
+            
+            const displayUrl = data.history ? data.history[data.currentIndex] : data.url;
+
+            slot.innerHTML = `
+                <img src="${displayUrl}" crossorigin="anonymous">
+                <div class="slot-actions" style="flex-direction: column; gap: 8px; padding: 10px;">
+                    <div class="flex items-center justify-between gap-2 w-full">
+                        <button onclick="openEditModal(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                            EDIT
+                        </button>
+                        <button onclick="openInpaintModal(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                            INPAINT
+                        </button>
+                        <button onclick="triggerGeneration(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                            REDRAW
+                        </button>
+                    </div>
+                    <div class="w-full">
+                        <button onclick="downloadSingle(${idx})" class="w-full py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200 flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            DOWNLOAD
+                        </button>
+                    </div>
+                </div>`;
+        }
+
+        async function downloadSingle(idx) { const img = imageSlots[idx]; if(!img) return; await performMasterSwordSlash(); try { const blob = await fetchImageBlobBypassCORS(img.url); const blobUrl = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = blobUrl; a.download = `artifact_${idx}_${Date.now()}.jpg`; document.body.appendChild(a); a.click(); setTimeout(() => { window.URL.revokeObjectURL(blobUrl); document.body.removeChild(a); }, 500); } catch (e) { window.open(img.url, '_blank'); } }
+        async function batchDownloadAll() { const container = document.getElementById('batchBtnContainer'); const availableSlots = imageSlots.map((img, i) => img ? {img, i} : null).filter(s => s !== null); if(availableSlots.length === 0) { playZeldaSound('error'); return; } await performMasterSwordSlash(); container.classList.add('slashed'); try { const zip = new JSZip(); const promises = availableSlots.map(async (slotItem) => { const blob = await fetchImageBlobBypassCORS(slotItem.img.url); zip.file(`artifact_${slotItem.i}.jpg`, blob); }); await Promise.all(promises); const content = await zip.generateAsync({type:"blob"}); const zipUrl = window.URL.createObjectURL(content); const a = document.createElement('a'); a.style.display = 'none'; a.href = zipUrl; a.download = `Hyrule_Package_${Date.now()}.zip`; document.body.appendChild(a); a.click(); setTimeout(() => { window.URL.revokeObjectURL(zipUrl); document.body.removeChild(a); }, 500); } catch (e) { triggerError('ARCHIVE FAILED', '打包失败。'); } setTimeout(() => container.classList.remove('slashed'), 800); }
+        setInterval(() => { document.getElementById('gameTime').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}); }, 1000);
+
+        let inpaintSlotIdx = -1;
+        let isDrawing = false;
+        let canvasPaths = []; 
+        let currentPath = [];
+        let currentBrushColor = '#FF3333'; 
+
+        const inpaintCanvas = document.getElementById('inpaintCanvas');
+        const inpaintCtx = inpaintCanvas.getContext('2d', { willReadFrequently: true });
+        const inpaintImg = document.getElementById('inpaintBaseImg');
+
+        function changeBrushColor(color) { playZeldaSound('click'); currentBrushColor = color; }
+
+        function openInpaintModal(idx) {
+            playZeldaSound('click');
+            inpaintSlotIdx = idx;
+            const data = imageSlots[idx];
+            if(!data) return;
+
+            if(!data.history) { data.history = [data.url]; data.currentIndex = 0; }
+            document.getElementById('inpaintSlotTitle').innerText = `[ Slot ${idx} ]`;
+            document.getElementById('inpaintPrompt').value = ''; 
+            loadInpaintImage(data.history[data.currentIndex]); updateHistoryUI(data);
+            document.getElementById('inpaintModal').classList.add('show');
+        }
+
+        function loadInpaintImage(url) {
+            const proxyUrl = "https://wsrv.nl/?url=" + encodeURIComponent(url);
+            inpaintImg.crossOrigin = "anonymous";
+            inpaintImg.src = proxyUrl;
+            
+            inpaintImg.onload = () => {
+                inpaintCanvas.width = inpaintImg.clientWidth;
+                inpaintCanvas.height = inpaintImg.clientHeight;
+                clearCanvas(); 
+            };
+            inpaintImg.onerror = () => { inpaintImg.src = "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(url); };
+        }
+
+        function closeInpaintModal() { playZeldaSound('click'); document.getElementById('inpaintModal').classList.remove('show'); }
+
+        function getMousePos(evt) { const rect = inpaintCanvas.getBoundingClientRect(); return { x: evt.clientX - rect.left, y: evt.clientY - rect.top }; }
+        inpaintCanvas.addEventListener('mousedown', (e) => { isDrawing = true; currentPath = [{ x: getMousePos(e).x, y: getMousePos(e).y }]; });
+        inpaintCanvas.addEventListener('mousemove', (e) => { if (!isDrawing) return; currentPath.push({ x: getMousePos(e).x, y: getMousePos(e).y }); redrawCanvas(); });
+        inpaintCanvas.addEventListener('mouseup', () => { if(!isDrawing) return; isDrawing = false; if (currentPath.length > 0) { canvasPaths.push({ path: currentPath, size: document.getElementById('brushSize').value, color: currentBrushColor }); } currentPath = []; });
+        inpaintCanvas.addEventListener('mouseout', () => { isDrawing = false; });
+
+        function redrawCanvas() {
+            inpaintCtx.clearRect(0, 0, inpaintCanvas.width, inpaintCanvas.height);
+            inpaintCtx.lineCap = 'round'; inpaintCtx.lineJoin = 'round';
+            canvasPaths.forEach(stroke => {
+                inpaintCtx.lineWidth = stroke.size; inpaintCtx.strokeStyle = stroke.color;
+                inpaintCtx.beginPath(); inpaintCtx.moveTo(stroke.path[0].x, stroke.path[0].y);
+                stroke.path.forEach(point => inpaintCtx.lineTo(point.x, point.y)); inpaintCtx.stroke();
+            });
+            if (currentPath.length > 0) {
+                inpaintCtx.lineWidth = document.getElementById('brushSize').value; inpaintCtx.strokeStyle = currentBrushColor;
+                inpaintCtx.beginPath(); inpaintCtx.moveTo(currentPath[0].x, currentPath[0].y);
+                currentPath.forEach(point => inpaintCtx.lineTo(point.x, point.y)); inpaintCtx.stroke();
+            }
+        }
+
+        function clearCanvas() { canvasPaths = []; currentPath = []; inpaintCtx.clearRect(0, 0, inpaintCanvas.width, inpaintCanvas.height); }
+        function undoBrush() { canvasPaths.pop(); redrawCanvas(); }
+
+        function updateHistoryUI(data) {
+            const controls = document.getElementById('historyControls');
+            if(data.history.length > 1) { controls.classList.remove('hidden'); document.getElementById('historyIndicator').innerText = `V.${data.currentIndex + 1} / ${data.history.length}`; } else { controls.classList.add('hidden'); }
+        }
+
+        function prevHistory() { playZeldaSound('click'); const data = imageSlots[inpaintSlotIdx]; if(data.currentIndex > 0) { data.currentIndex--; loadInpaintImage(data.history[data.currentIndex]); updateHistoryUI(data); renderSlot(inpaintSlotIdx); } }
+        function nextHistory() { playZeldaSound('click'); const data = imageSlots[inpaintSlotIdx]; if(data.currentIndex < data.history.length - 1) { data.currentIndex++; loadInpaintImage(data.history[data.currentIndex]); updateHistoryUI(data); renderSlot(inpaintSlotIdx); } }
+
+        async function sendInpaintTask() {
+            const prompt = document.getElementById('inpaintPrompt').value.trim();
+            if (!prompt) { triggerError('MISSING DIRECTIVE', '请填写神谕指令！'); return; }
+            if (canvasPaths.length === 0) { triggerError('NO ANNOTATION', '请在图片上涂抹标注区域！'); return; }
+
+            playZeldaSound('click');
+            const titles = getCurrentSlotTitles();
+            const targetTitle = titles[inpaintSlotIdx] || "";
+            let aspectRatio = "1:1";
+            if (targetTitle.includes("老版A+")) aspectRatio = "16:9";
+            if (targetTitle.includes("高级A+")) aspectRatio = "21:9";
+
+            const mergeCanvas = document.createElement('canvas');
+            mergeCanvas.width = inpaintCanvas.width; mergeCanvas.height = inpaintCanvas.height;
+            const mCtx = mergeCanvas.getContext('2d');
+            mCtx.drawImage(inpaintImg, 0, 0, mergeCanvas.width, mergeCanvas.height);
+            mCtx.drawImage(inpaintCanvas, 0, 0);
+
+            closeInpaintModal();
+            const slot = document.getElementById(`slot-${inpaintSlotIdx}`);
+            slot.classList.add('standby');
+            slot.innerHTML = `<div class="animate-pulse text-zonai-yellow italic text-xs tracking-widest font-mono py-16">UPLOADING & OVERWRITING...</div>`;
+
+            const taskId = `inpaint_${Date.now()}_${inpaintSlotIdx}`;
+
+            mergeCanvas.toBlob(async (blob) => {
+                if (!blob) { triggerError('RENDER ERROR', '图层合并失败，无法生成文件。'); renderSlot(inpaintSlotIdx); return; }
+                try {
+                    const storageRef = firebase.storage().ref();
+                    const maskRef = storageRef.child(`hyrule_masks/${taskId}.jpg`);
+                    await maskRef.put(blob);
+                    const uploadedImageUrl = await maskRef.getDownloadURL();
+
+                    const payload = { task_id: taskId, slot_idx: inpaintSlotIdx, prompt: prompt, aspect_ratio: aspectRatio, annotated_image_url: uploadedImageUrl };
+                    const response = await fetch(N8N_INPAINT_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if(!response.ok) throw new Error("n8n Webhook 无响应");
+
+                    activeKieTasks.push({ slot: inpaintSlotIdx, taskId: taskId, isInpaint: true });
+                    resumeKieListener(inpaintSlotIdx, taskId); 
+                } catch (error) { triggerError('CONNECTION ERROR', '与云端仓库断开连接或 n8n 拒绝访问。'); renderSlot(inpaintSlotIdx); }
+            }, 'image/jpeg', 0.95);
+        }
     </script>
 </body>
 </html>
