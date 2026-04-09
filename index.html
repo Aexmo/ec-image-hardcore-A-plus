@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyrule Strategic Command v15.0 (Veteran & Layout Optimized)</title>
+    <title>Hyrule Strategic Command v15.1 (Bug Fixes & UI Polish)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -39,7 +39,6 @@
         
         .workspace-grid { display: grid; grid-template-columns: 1.3fr 1.8fr 0.9fr; gap: 1rem; min-height: 0; }
 
-        /* 防撑爆核心：内层滚动容器 */
         .scroll-container { flex-grow: 1; overflow-y: auto; min-height: 0; padding-right: 0.5rem; }
 
         .btn-agent { width: 100%; background: rgba(0, 212, 255, 0.1); border: 2px solid var(--sheikah-blue); color: var(--sheikah-blue); border-radius: 1rem; padding: 0.8rem; font-weight: 900; font-size: 1rem; letter-spacing: 0.1em; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: auto; flex-shrink: 0; }
@@ -335,6 +334,10 @@
                                         尽量对应区域上传图片，可以让各种图片保持更好的效果。
                                     </div>
                                 </div>
+                                <div class="newbie-ui ml-3 hidden items-center gap-3">
+                                    <span class="text-[11px] font-black text-zonai-teal newbie-glow tracking-widest">⬅️ 新手必看！</span>
+                                    <button onclick="dismissNewbie()" class="px-3 py-1 rounded border border-zonai-yellow text-zonai-yellow text-[10px] hover:bg-zonai-yellow hover:text-black transition">我是老玩家我懂</button>
+                                </div>
                             </h3>
                             <span class="text-[10px] text-zonai-teal/60 font-mono tracking-widest" id="uploadCountIndicator">0/8</span>
                         </div>
@@ -437,7 +440,6 @@
     </div>
 
     <script>
-        // Webhook 常量保护区，前端完全隐匿
         const SECRET_AGENT_URL = "https://zcaaron7.app.n8n.cloud/webhook/5830ed86-5a80-41fd-8803-54b0d8354be1";
         const SECRET_KIE_URL = "https://zcaaron7.app.n8n.cloud/webhook/dd38d62a-95ad-4127-8542-df93f7c98af2";
         const N8N_INPAINT_WEBHOOK = "https://zcaaron7.app.n8n.cloud/webhook/inpaint-v1"; 
@@ -470,7 +472,7 @@
                 document.getElementById('authOverlay').style.opacity = '0';
                 setTimeout(() => { document.getElementById('authOverlay').style.display = 'none'; }, 500);
                 loadAppState();
-                checkNewbieStatus(); // 检测新手状态
+                checkNewbieStatus(); 
             } else {
                 playZeldaSound('error');
                 const err = document.getElementById('authErrText');
@@ -484,13 +486,12 @@
             if (localStorage.getItem('hyrule_terminal_auth') === 'GRANTED') {
                 document.getElementById('authOverlay').style.display = 'none';
                 loadAppState();
-                checkNewbieStatus(); // 检测新手状态
+                checkNewbieStatus(); 
             } else {
                 document.getElementById('authOverlay').style.display = 'flex';
             }
         };
 
-        // ======= 全新老玩家系统 (Zelda Toast) =======
         function checkNewbieStatus() {
             if (localStorage.getItem('hyrule_veteran') === 'true') {
                 document.querySelectorAll('.newbie-ui').forEach(el => el.style.display = 'none');
@@ -507,7 +508,6 @@
             document.querySelectorAll('.newbie-ui').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.tooltip-icon').forEach(el => el.classList.remove('newbie-breathe'));
             
-            // 弹出 Zelda 风格神谕庆祝
             const toast = document.createElement('div');
             toast.className = 'fixed top-10 left-1/2 transform -translate-x-1/2 bg-black/90 border-2 border-zonai-yellow text-zonai-yellow px-10 py-4 rounded-full z-[9999] font-black tracking-widest text-xl shadow-[0_0_40px_rgba(255,215,0,0.5)] transition-all duration-500 flex items-center gap-4';
             toast.innerHTML = `<img src="TWW_Koroks_Artwork.png" style="height:40px;"> 恭喜你出新手村了，菜鸟！`;
@@ -519,7 +519,6 @@
                 setTimeout(() => toast.remove(), 500);
             }, 3000);
         }
-        // ===========================================
 
         let imageSlots = new Array(12).fill(null);
         let globalMaterials = []; 
@@ -637,8 +636,7 @@
             });
         }
 
-
-      let progressInterval = null;
+        let progressInterval = null;
         
         function abortAgentTask() {
             playZeldaSound('click');
@@ -673,8 +671,9 @@
             });
         }
 
+        // ====== 重大修复点 1：把 document.getElementById('agentWebhookUrl').value 换成了常量 ======
         async function summonAgent() {
-            const agentUrl = document.getElementById('agentWebhookUrl').value; 
+            const agentUrl = SECRET_AGENT_URL; // <--- 修复点
             const name = document.getElementById('prodName').value; 
             const desc = document.getElementById('prodDesc').value; 
             const strictReq = document.getElementById('strictReq').value;
@@ -720,11 +719,10 @@
                 for(let i=1; i<=6; i++) titles[i] = `【卖点图${i}】`;
             }
 
-           if (scope.includes('thd')) {
+            if (scope.includes('thd')) {
                 titles[0] = '【THD白底图1: 纯净主图】';
                 titles[1] = '【THD白底图2: 多角度展示】';
                 titles[2] = '【THD白底图3: 产品尺寸图】';
-                // 👇 仅仅修改下面这四行的数字，让它们变成 4, 5, 6, 7
                 titles[3] = '【THD场景图4: 空间环境】';
                 titles[4] = '【THD场景图5: 空间环境】';
                 titles[5] = '【THD场景图6: 空间环境】';
@@ -889,18 +887,15 @@
             const prodName = document.getElementById('prodName').value || "未命名产品";
             
             try {
-                // 1. 精准锁定第二页(输出页)，并强行撑开滚动条限制以截取长图
                 const targetEl = document.getElementById('view-adventure-log');
                 const galleryWrapper = document.querySelector('.gallery-wrapper');
                 const pad = document.querySelector('.purah-pad');
 
-                // 记录原有的样式
                 const oldPadHeight = pad.style.height;
                 const oldTargetHeight = targetEl.style.height;
                 const oldGalleryHeight = galleryWrapper ? galleryWrapper.style.height : '';
                 const oldGalleryOverflow = galleryWrapper ? galleryWrapper.style.overflow : '';
 
-                // 瞬间移除高度限制，让页面完全展平
                 pad.style.height = 'max-content';
                 targetEl.style.height = 'max-content';
                 targetEl.style.overflow = 'visible';
@@ -909,20 +904,17 @@
                     galleryWrapper.style.overflow = 'visible';
                 }
 
-                // 停顿300毫秒，给浏览器时间把长图完全渲染出来
                 await new Promise(r => setTimeout(r, 300));
 
-                // 仅对第二页进行全长截图
                 const canvas = await html2canvas(targetEl, {
                     useCORS: true, 
                     allowTaint: true,
                     scale: 1.5,
                     backgroundColor: '#1A1614',
                     logging: false,
-                    windowHeight: targetEl.scrollHeight // 强制获取完整的滚动高度
+                    windowHeight: targetEl.scrollHeight 
                 });
 
-                // 截图完成，瞬间恢复原本的 UI 样式（滚动条还原）
                 pad.style.height = oldPadHeight;
                 targetEl.style.height = oldTargetHeight;
                 targetEl.style.overflow = '';
@@ -930,7 +922,7 @@
                     galleryWrapper.style.height = oldGalleryHeight;
                     galleryWrapper.style.overflow = oldGalleryOverflow;
                 }
-                // 2. 将画布静默转换为 JPEG 图片 Blob 文件  
+                
                 canvas.toBlob(async (blob) => {
                     if (!blob) throw new Error("画布捕获失败");
                     
@@ -973,8 +965,9 @@
             }
         }
 
+        // ====== 重大修复点 2：把 document.getElementById('webhookUrl').value 换成了常量 ======
         async function triggerGeneration(targetIdx = null) {
-            const url = document.getElementById('webhookUrl').value; 
+            const url = SECRET_KIE_URL; // <--- 修复点
             const text = document.getElementById('sopText').value;
             const strictReq = document.getElementById('strictReq').value;
             const scope = document.getElementById('designScope').value;
