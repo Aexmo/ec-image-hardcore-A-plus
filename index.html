@@ -353,56 +353,56 @@
 
                         <input type="file" id="hiddenFileInput" multiple accept="image/*" class="hidden" onchange="handleDirectUpload(this)">
                         
-                        <div class="grid grid-cols-2 gap-1.5 flex-shrink-0 mb-3">
-                            <div onclick="openUploader('产品主体图')" ondragover="preventDefaults(event); this.classList.add('bg-zonai-teal/30', 'border-zonai-teal')" ondragleave="this.classList.remove('bg-zonai-teal/30', 'border-zonai-teal')" ondrop="handleDirectDrop(event, '产品主体图'); this.classList.remove('bg-zonai-teal/30', 'border-zonai-teal')" class="group relative border border-dashed border-white/20 hover:border-zonai-teal bg-black/40 hover:bg-zonai-teal/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
-                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">🟢 产品主体图</span>
-                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-zonai-teal text-center z-10 leading-relaxed font-mono">
-                                    展示产品主体，有多角度更好，不要把细节图和配件之类的弄进来
-                                </div>
-                            </div>
-                            
-                            <div onclick="openUploader('功能展示图')" ondragover="preventDefaults(event); this.classList.add('bg-sheikah-blue/30', 'border-sheikah-blue')" ondragleave="this.classList.remove('bg-sheikah-blue/30', 'border-sheikah-blue')" ondrop="handleDirectDrop(event, '功能展示图'); this.classList.remove('bg-sheikah-blue/30', 'border-sheikah-blue')" class="group relative border border-dashed border-white/20 hover:border-sheikah-blue bg-black/40 hover:bg-sheikah-blue/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
-                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">🔵 功能展示图</span>
-                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-sheikah-blue text-center z-10 leading-relaxed font-mono">
-                                    展示产品功能性特写
-                                </div>
-                            </div>
-                            
-                            <div onclick="openUploader('材质细节图')" ondragover="preventDefaults(event); this.classList.add('bg-[#B026FF]/30', 'border-[#B026FF]')" ondragleave="this.classList.remove('bg-[#B026FF]/30', 'border-[#B026FF]')" ondrop="handleDirectDrop(event, '材质细节图'); this.classList.remove('bg-[#B026FF]/30', 'border-[#B026FF]')" class="group relative border border-dashed border-white/20 hover:border-[#B026FF] bg-black/40 hover:bg-[#B026FF]/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
-                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">🟣 材质细节图</span>
-                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-[#B026FF] text-center z-10 leading-relaxed font-mono">
-                                    展示产品材质细节
-                                </div>
-                            </div>
-                            
-                            <div onclick="openUploader('尺寸图')" ondragover="preventDefaults(event); this.classList.add('bg-white/30', 'border-white')" ondragleave="this.classList.remove('bg-white/30', 'border-white')" ondrop="handleDirectDrop(event, '尺寸图'); this.classList.remove('bg-white/30', 'border-white')" class="group relative border border-dashed border-white/20 hover:border-white bg-black/40 hover:bg-white/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
-                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">📏 尺寸图</span>
-                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-white text-center z-10 leading-relaxed font-mono">
-                                    展示产品大小，最好旁边有手或真人大小的剪影做对比
-                                </div>
-                            </div>
-                            
-                            <div onclick="openUploader('互动图')" ondragover="preventDefaults(event); this.classList.add('bg-zonai-yellow/30', 'border-zonai-yellow')" ondragleave="this.classList.remove('bg-zonai-yellow/30', 'border-zonai-yellow')" ondrop="handleDirectDrop(event, '互动图'); this.classList.remove('bg-zonai-yellow/30', 'border-zonai-yellow')" class="group relative border border-dashed border-white/20 hover:border-zonai-yellow bg-black/40 hover:bg-zonai-yellow/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
-                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">🤝 互动图</span>
-                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-zonai-yellow text-center z-10 leading-relaxed font-mono">
-                                    产品与人互动与环境互动的图片
-                                </div>
-                            </div>
-                            
-                            <div onclick="openUploader('配件图')" ondragover="preventDefaults(event); this.classList.add('bg-orange-500/30', 'border-orange-500')" ondragleave="this.classList.remove('bg-orange-500/30', 'border-orange-500')" ondrop="handleDirectDrop(event, '配件图'); this.classList.remove('bg-orange-500/30', 'border-orange-500')" class="group relative border border-dashed border-white/20 hover:border-orange-500 bg-black/40 hover:bg-orange-500/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
-                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">🧩 配件图</span>
-                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-orange-500 text-center z-10 leading-relaxed font-mono">
-                                    产品附带的配件放这里
-                                </div>
-                            </div>
-                            
-                            <div onclick="openUploader('参数说明图')" ondragover="preventDefaults(event); this.classList.add('bg-pink-500/30', 'border-pink-500')" ondragleave="this.classList.remove('bg-pink-500/30', 'border-pink-500')" ondrop="handleDirectDrop(event, '参数说明图'); this.classList.remove('bg-pink-500/30', 'border-pink-500')" class="group relative col-span-2 border border-dashed border-white/20 hover:border-pink-500 bg-black/40 hover:bg-pink-500/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
-                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">📊 参数说明图</span>
-                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-pink-500 text-center z-10 leading-relaxed font-mono">
-                                    产品的参数图片
-                                </div>
-                            </div>
-                        </div>
+                        <div class="grid grid-cols-2 gap-3 flex-shrink-0 mb-3">
+    <div onclick="openUploader('产品主体图')" ondragover="preventDefaults(event); this.classList.add('bg-zonai-teal/30', 'border-zonai-teal')" ondragleave="this.classList.remove('bg-zonai-teal/30', 'border-zonai-teal')" ondrop="handleDirectDrop(event, '产品主体图'); this.classList.remove('bg-zonai-teal/30', 'border-zonai-teal')" class="group relative border border-dashed border-white/20 hover:border-zonai-teal bg-black/40 hover:bg-zonai-teal/10 rounded-lg h-14 flex justify-center items-center cursor-pointer transition overflow-hidden">
+        <span class="text-[13px] font-black text-gray-200 group-hover:opacity-0 transition-opacity tracking-wide">🟢 产品主体图</span>
+        <div class="absolute inset-0 bg-black/95 px-3 hidden group-hover:flex items-center justify-center text-[11px] text-zonai-teal text-center z-10 leading-relaxed font-mono">
+            展示产品主体，有多角度更好，不要把细节图和配件之类的弄进来
+        </div>
+    </div>
+    
+    <div onclick="openUploader('功能展示图')" ondragover="preventDefaults(event); this.classList.add('bg-sheikah-blue/30', 'border-sheikah-blue')" ondragleave="this.classList.remove('bg-sheikah-blue/30', 'border-sheikah-blue')" ondrop="handleDirectDrop(event, '功能展示图'); this.classList.remove('bg-sheikah-blue/30', 'border-sheikah-blue')" class="group relative border border-dashed border-white/20 hover:border-sheikah-blue bg-black/40 hover:bg-sheikah-blue/10 rounded-lg h-14 flex justify-center items-center cursor-pointer transition overflow-hidden">
+        <span class="text-[13px] font-black text-gray-200 group-hover:opacity-0 transition-opacity tracking-wide">🔵 功能展示图</span>
+        <div class="absolute inset-0 bg-black/95 px-3 hidden group-hover:flex items-center justify-center text-[11px] text-sheikah-blue text-center z-10 leading-relaxed font-mono">
+            展示产品功能性特写
+        </div>
+    </div>
+    
+    <div onclick="openUploader('材质细节图')" ondragover="preventDefaults(event); this.classList.add('bg-[#B026FF]/30', 'border-[#B026FF]')" ondragleave="this.classList.remove('bg-[#B026FF]/30', 'border-[#B026FF]')" ondrop="handleDirectDrop(event, '材质细节图'); this.classList.remove('bg-[#B026FF]/30', 'border-[#B026FF]')" class="group relative border border-dashed border-white/20 hover:border-[#B026FF] bg-black/40 hover:bg-[#B026FF]/10 rounded-lg h-14 flex justify-center items-center cursor-pointer transition overflow-hidden">
+        <span class="text-[13px] font-black text-gray-200 group-hover:opacity-0 transition-opacity tracking-wide">🟣 材质细节图</span>
+        <div class="absolute inset-0 bg-black/95 px-3 hidden group-hover:flex items-center justify-center text-[11px] text-[#B026FF] text-center z-10 leading-relaxed font-mono">
+            展示产品材质细节
+        </div>
+    </div>
+    
+    <div onclick="openUploader('尺寸图')" ondragover="preventDefaults(event); this.classList.add('bg-white/30', 'border-white')" ondragleave="this.classList.remove('bg-white/30', 'border-white')" ondrop="handleDirectDrop(event, '尺寸图'); this.classList.remove('bg-white/30', 'border-white')" class="group relative border border-dashed border-white/20 hover:border-white bg-black/40 hover:bg-white/10 rounded-lg h-14 flex justify-center items-center cursor-pointer transition overflow-hidden">
+        <span class="text-[13px] font-black text-gray-200 group-hover:opacity-0 transition-opacity tracking-wide">📏 尺寸图</span>
+        <div class="absolute inset-0 bg-black/95 px-3 hidden group-hover:flex items-center justify-center text-[11px] text-white text-center z-10 leading-relaxed font-mono">
+            展示产品大小，最好旁边有手或真人大小的剪影做对比
+        </div>
+    </div>
+    
+    <div onclick="openUploader('互动图')" ondragover="preventDefaults(event); this.classList.add('bg-zonai-yellow/30', 'border-zonai-yellow')" ondragleave="this.classList.remove('bg-zonai-yellow/30', 'border-zonai-yellow')" ondrop="handleDirectDrop(event, '互动图'); this.classList.remove('bg-zonai-yellow/30', 'border-zonai-yellow')" class="group relative border border-dashed border-white/20 hover:border-zonai-yellow bg-black/40 hover:bg-zonai-yellow/10 rounded-lg h-14 flex justify-center items-center cursor-pointer transition overflow-hidden">
+        <span class="text-[13px] font-black text-gray-200 group-hover:opacity-0 transition-opacity tracking-wide">🤝 互动图</span>
+        <div class="absolute inset-0 bg-black/95 px-3 hidden group-hover:flex items-center justify-center text-[11px] text-zonai-yellow text-center z-10 leading-relaxed font-mono">
+            产品与人互动与环境互动的图片
+        </div>
+    </div>
+    
+    <div onclick="openUploader('配件图')" ondragover="preventDefaults(event); this.classList.add('bg-orange-500/30', 'border-orange-500')" ondragleave="this.classList.remove('bg-orange-500/30', 'border-orange-500')" ondrop="handleDirectDrop(event, '配件图'); this.classList.remove('bg-orange-500/30', 'border-orange-500')" class="group relative border border-dashed border-white/20 hover:border-orange-500 bg-black/40 hover:bg-orange-500/10 rounded-lg h-14 flex justify-center items-center cursor-pointer transition overflow-hidden">
+        <span class="text-[13px] font-black text-gray-200 group-hover:opacity-0 transition-opacity tracking-wide">🧩 配件图</span>
+        <div class="absolute inset-0 bg-black/95 px-3 hidden group-hover:flex items-center justify-center text-[11px] text-orange-500 text-center z-10 leading-relaxed font-mono">
+            产品附带的配件放这里
+        </div>
+    </div>
+    
+    <div onclick="openUploader('参数说明图')" ondragover="preventDefaults(event); this.classList.add('bg-pink-500/30', 'border-pink-500')" ondragleave="this.classList.remove('bg-pink-500/30', 'border-pink-500')" ondrop="handleDirectDrop(event, '参数说明图'); this.classList.remove('bg-pink-500/30', 'border-pink-500')" class="group relative col-span-2 border border-dashed border-white/20 hover:border-pink-500 bg-black/40 hover:bg-pink-500/10 rounded-lg h-14 flex justify-center items-center cursor-pointer transition overflow-hidden">
+        <span class="text-[13px] font-black text-gray-200 group-hover:opacity-0 transition-opacity tracking-wide">📊 参数说明图</span>
+        <div class="absolute inset-0 bg-black/95 px-3 hidden group-hover:flex items-center justify-center text-[11px] text-pink-500 text-center z-10 leading-relaxed font-mono">
+            产品的参数图片
+        </div>
+    </div>
+</div>
 
                         <div id="materialPreviewGrid" class="grid grid-cols-4 gap-2 overflow-y-auto custom-scrollbar flex-grow content-start border-t border-white/10 pt-3 min-h-[100px]"></div>
                     </div>
