@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hyrule Strategic Command v14.5 (Categorized Auth)</title>
+    <title>Hyrule Strategic Command v14.6 (Categorized Auth & Guides)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -27,7 +27,8 @@
         .category-icon.active { color: var(--zonai-teal); border-color: var(--zonai-teal); box-shadow: 0 0 40px rgba(0, 255, 197, 0.4); background: rgba(0, 255, 197, 0.1); }
 
         .main-content { flex-grow: 1; z-index: 10; display: flex; flex-direction: column; position: relative; }
-        .dashboard-view { padding: 1.5rem 2.5rem; display: grid; grid-template-rows: auto auto auto 1fr auto; gap: 0.8rem; height: 100%; overflow: hidden; }
+        /* 修复面板拥挤：减小 padding，留出更多空间 */
+        .dashboard-view { padding: 1.5rem; display: grid; grid-template-rows: auto auto 1fr auto; gap: 0.8rem; height: 100%; overflow: hidden; }
 
         .header-logo-img { max-height: 70px; width: auto; object-fit: contain; filter: drop-shadow(0 0 10px rgba(0, 255, 197, 0.3)); margin-right: 1.5rem; }
 
@@ -37,14 +38,16 @@
         .yahaha-strip { width: 100%; height: 60px; display: flex; justify-content: center; align-items: center; overflow: hidden; pointer-events: none; opacity: 0.8; margin: 0; flex-shrink: 0; }
         .yahaha-img { height: 100%; object-fit: contain; }
 
-        .panel-glass { background: var(--terminal-bg); backdrop-filter: blur(60px); border: 1.5px solid rgba(0, 255, 197, 0.2); border-radius: 2rem; padding: 1.5rem; position: relative; overflow: hidden; display: flex; flex-direction: column; }
-        .workspace-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.2rem; min-height: 0; }
+        /* 修复面板拥挤：调整内部 padding */
+        .panel-glass { background: var(--terminal-bg); backdrop-filter: blur(60px); border: 1.5px solid rgba(0, 255, 197, 0.2); border-radius: 2rem; padding: 1.2rem; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        /* 修复面板拥挤：调整 3 个柱子的比例，中间传图区给最大的 1.2fr */
+        .workspace-grid { display: grid; grid-template-columns: 1fr 1.2fr 1.1fr; gap: 1rem; min-height: 0; }
 
-        .btn-agent { width: 100%; background: rgba(0, 212, 255, 0.1); border: 2px solid var(--sheikah-blue); color: var(--sheikah-blue); border-radius: 1rem; padding: 0.8rem; font-weight: 900; font-size: 1rem; letter-spacing: 0.1em; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: auto; }
+        .btn-agent { width: 100%; background: rgba(0, 212, 255, 0.1); border: 2px solid var(--sheikah-blue); color: var(--sheikah-blue); border-radius: 1rem; padding: 0.8rem; font-weight: 900; font-size: 1rem; letter-spacing: 0.1em; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: auto; flex-shrink: 0; }
         .btn-agent:hover:not(:disabled) { background: var(--sheikah-blue); color: #000; box-shadow: 0 0 30px rgba(0, 212, 255, 0.5); }
         .btn-agent:disabled { border-color: #666; color: #666; cursor: not-allowed; }
 
-        .btn-ultrahand-main { height: 90px; width: 100%; background: #111; border: 3px solid #666; color: #666; border-radius: 2rem; font-size: 2rem; letter-spacing: 0.15em; display: flex; align-items: center; justify-content: center; gap: 3rem; cursor: not-allowed; transition: 0.4s; font-weight: 900; text-transform: uppercase; flex-shrink: 0; }
+        .btn-ultrahand-main { height: 80px; width: 100%; background: #111; border: 3px solid #666; color: #666; border-radius: 2rem; font-size: 2rem; letter-spacing: 0.15em; display: flex; align-items: center; justify-content: center; gap: 3rem; cursor: not-allowed; transition: 0.4s; font-weight: 900; text-transform: uppercase; flex-shrink: 0; }
         .ready-to-fuse { background: #050505 !important; border-color: var(--zonai-yellow) !important; color: var(--zonai-yellow) !important; cursor: pointer !important; animation: pulse-gold 2s infinite cubic-bezier(0.4, 0, 0.6, 1); }
         .ready-to-fuse:hover { background: var(--zonai-yellow) !important; color: #000 !important; transform: translateY(-5px); box-shadow: 0 0 120px rgba(255, 215, 0, 0.8) !important; animation: none; }
         @keyframes pulse-gold { 0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); } 50% { box-shadow: 0 0 60px rgba(255, 215, 0, 0.6); } }
@@ -53,6 +56,13 @@
         @keyframes hand-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
         .link-parallel-img { position: absolute; bottom: -30px; right: -20px; height: 480px; width: 580px; background-image: url('image_01236a.png'); background-size: contain; background-repeat: no-repeat; background-position: bottom right; filter: brightness(1.4) drop-shadow(0 0 25px var(--zonai-teal)); pointer-events: none; z-index: 40; }
 
+        /* 海拉鲁生存技巧提示框专属样式 */
+        .guide-tooltip { position: relative; display: inline-flex; align-items: center; justify-content: center; cursor: help; margin-left: 0.6rem; z-index: 100; }
+        .guide-tooltip .tooltip-content { visibility: hidden; width: 340px; background-color: rgba(10, 15, 20, 0.95); color: #e2e8f0; text-align: left; border-radius: 0.8rem; padding: 1.2rem; position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid var(--zonai-yellow); box-shadow: 0 0 30px rgba(255, 215, 0, 0.2); font-size: 0.8rem; font-family: 'PingFang SC', sans-serif; line-height: 1.6; font-weight: normal; text-transform: none; letter-spacing: normal; pointer-events: none; }
+        .guide-tooltip:hover .tooltip-content { visibility: visible; opacity: 1; transform: translateX(-50%) translateY(-5px); }
+        .guide-tooltip .tooltip-content::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: var(--zonai-yellow) transparent transparent transparent; }
+
+        /* 其余保持不变 */
         .champions-overlay { position: absolute; inset: 0; background: rgba(5, 6, 7, 0.95); z-index: 2000; display: none; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.8s ease; backdrop-filter: blur(20px); }
         .champions-overlay.show { display: flex; opacity: 1; }
         .champions-img { height: 65vh; object-fit: contain; filter: drop-shadow(0 0 40px rgba(0, 212, 255, 0.2)); animation: breathe 5s infinite ease-in-out; transition: all 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
@@ -65,12 +75,10 @@
         .progress-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; border: 1px solid rgba(0,212,255,0.3); }
         .progress-bar-fill { height: 100%; width: 0%; background: var(--sheikah-blue); box-shadow: 0 0 15px var(--sheikah-blue); transition: width 1s linear; }
 
-        /* 动态画廊布局样式 */
         .gallery-wrapper { display: flex; flex-direction: column; height: 100%; overflow-y: auto; padding-right: 15px; }
         .main-images-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
         .aplus-images-section { display: flex; flex-direction: column; gap: 2rem; width: 100%; }
 
-        /* 单个图片插槽 */
         .quest-slot { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; height: auto; border: none !important; border-radius: 1rem; background: rgba(0,0,0,0.6); }
         .quest-slot.standby { border: 1px dashed rgba(0, 212, 255, 0.3) !important; }
         .quest-slot img { width: 100%; height: auto; display: block; object-fit: contain; border: none !important; }
@@ -234,9 +242,20 @@
 
                 <div class="workspace-grid">
                     <div class="panel-glass">
-                        <h3 class="text-sm text-zonai-teal mb-3 italic game-title uppercase tracking-widest">1. Product Intelligence</h3>
+                        <h3 class="text-sm text-zonai-teal mb-3 italic game-title uppercase tracking-widest flex items-center">
+                            1. Product Intelligence
+                            <div class="guide-tooltip">
+                                <svg class="w-4 h-4 text-zonai-yellow hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <div class="tooltip-content text-zonai-yellow">
+                                    <strong class="block mb-1 text-white">📘 海拉鲁生存技巧：</strong>
+                                    填写卖点最好不要一大段，填写得越精简越准确，大模型获取的信息就越集中就越不会出现幻觉。<br><br>
+                                    如果有参数，请具体些参数，让大模型对你的产品大小有个认知。<br><br>
+                                    如果是不怎么常见的冷门产品，最好写上应用场景。因为AI的弱点就在于产品太冷门他不认识，在场景应用上会翻车。
+                                </div>
+                            </div>
+                        </h3>
                         
-                        <select id="designScope" class="sheikah-input mb-3 text-sm font-mono font-bold custom-scrollbar" style="color: var(--zonai-teal); border-color: rgba(0,255,197,0.3); background-color: rgba(0,0,0,0.8);" onchange="handleScopeChange()">
+                        <select id="designScope" class="sheikah-input mb-3 text-sm font-mono font-bold custom-scrollbar shrink-0" style="color: var(--zonai-teal); border-color: rgba(0,255,197,0.3); background-color: rgba(0,0,0,0.8);" onchange="handleScopeChange()">
                             <option value="" disabled selected>👉 请选择图文输出范围...</option>
                             <option value="main_and_6">主幅图7张</option>
                             <option value="main_6_old_aplus">主幅图7张 + 5张老A+</option>
@@ -246,7 +265,7 @@
                             <option value="thd_only">THD要求图 7张 (无字/无人物)</option>
                         </select>
 
-                        <select id="targetMarket" class="sheikah-input mb-3 text-sm font-mono font-bold custom-scrollbar" style="color: var(--zonai-yellow); border-color: rgba(255,215,0,0.3); background-color: rgba(0,0,0,0.8);" onchange="saveAppState()">
+                        <select id="targetMarket" class="sheikah-input mb-3 text-sm font-mono font-bold custom-scrollbar shrink-0" style="color: var(--zonai-yellow); border-color: rgba(255,215,0,0.3); background-color: rgba(0,0,0,0.8);" onchange="saveAppState()">
                             <optgroup label="🌎 北美及拉美战区 (Americas)">
                                 <option value='{"market":"美国", "lang":"English"}'>🇺🇸 美国 (US / English)</option>
                                 <option value='{"market":"加拿大", "lang":"English"}'>🇨🇦 加拿大 (CA / English)</option>
@@ -273,54 +292,97 @@
                             </optgroup>
                         </select>
 
-                        <input type="text" id="prodName" class="sheikah-input mb-3 text-sm" placeholder="产品名称及物理特征..." oninput="saveAppState()">
-                        <textarea id="prodDesc" class="flex-grow sheikah-input resize-none leading-relaxed text-sm mb-3" placeholder="详细核心卖点描述..." oninput="saveAppState()"></textarea>
+                        <input type="text" id="prodName" class="sheikah-input mb-3 text-sm shrink-0" placeholder="产品名称及物理特征..." oninput="saveAppState()">
+                        <textarea id="prodDesc" class="flex-grow sheikah-input resize-none leading-relaxed text-sm mb-3 min-h-[60px]" placeholder="详细核心卖点描述..." oninput="saveAppState()"></textarea>
                         
-                        <textarea id="strictReq" class="h-12 shrink-0 sheikah-input resize-none leading-relaxed text-sm mb-3 border-red-500/50 focus:border-red-500 shadow-[inset_0_0_10px_rgba(255,0,0,0.1)]" placeholder="⚠️ [选填] 强硬设计需求 (如：必须白底，严禁人物...)" oninput="saveAppState()"></textarea>
+                        <p class="text-[9px] text-red-400/80 mb-1 font-mono tracking-wider shrink-0">⚠️ 如果有强制要求请写在此处，模型会绝对优先执行该权重：</p>
+                        <textarea id="strictReq" class="h-14 shrink-0 sheikah-input resize-none leading-relaxed text-sm mb-3 border-red-500/50 focus:border-red-500 shadow-[inset_0_0_10px_rgba(255,0,0,0.1)]" placeholder="[选填] 强硬设计需求 (如：必须白底，严禁人物...)" oninput="saveAppState()"></textarea>
 
-                        <button onclick="summonAgent()" id="agentBtn" class="btn-agent mt-auto">
+                        <button onclick="summonAgent()" id="agentBtn" class="btn-agent mt-auto shrink-0">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 12 2.1 7.1"/><path d="M12 12l9.9 4.9"/></svg>
                             SUMMON AGENT (一键构思)
                         </button>
                     </div>
 
                     <div class="panel-glass flex flex-col h-full" id="dropZoneContainer">
-                        <div class="flex justify-between items-center mb-3 flex-shrink-0">
-                            <h3 class="text-sm text-zonai-teal italic game-title uppercase tracking-widest">2. Material Carrier</h3>
+                        <div class="flex justify-between items-center mb-1 flex-shrink-0">
+                            <h3 class="text-sm text-zonai-teal italic game-title uppercase tracking-widest flex items-center">
+                                2. Material Carrier
+                                <div class="guide-tooltip">
+                                    <svg class="w-4 h-4 text-zonai-yellow hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <div class="tooltip-content text-zonai-yellow w-[320px]">
+                                        <strong class="block mb-1 text-white">📘 海拉鲁生存技巧：</strong>
+                                        不要期望只传一张图让大模型脑补不存在的细节给你。即使偶尔成功 也是因为产品在大模型数据库中已经非常常见有大量数据支撑导致的。<br><br>
+                                        想让效果更好，这里的正确用法是：<br>
+                                        产品主体为主的图片尽量减少背景干扰，可以不高清不高级（我们的AGENT会为你重新打光渲染材质），但是如果细节都拍摄都是根本都看不清，那就别怪大模型出错啦！对自己的产品负责点，对你的TOKEN负责点。<br><br>
+                                        尽量对应区域上传图片，可以让各种图片保持更好的效果。
+                                    </div>
+                                </div>
+                            </h3>
                             <span class="text-[10px] text-zonai-teal/60 font-mono tracking-widest" id="uploadCountIndicator">0/8</span>
                         </div>
                         
+                        <p class="text-[10px] text-gray-400 mb-2 font-mono shrink-0">💡 图片最多8张，每张不要超过400K，不然生成不成功哦。点击框体或拖拽传入。</p>
+
                         <input type="file" id="hiddenFileInput" multiple accept="image/*" class="hidden" onchange="handleDirectUpload(this)">
                         
-                        <div class="grid grid-cols-2 gap-1.5 flex-shrink-0 mb-2">
-                            <div onclick="openUploader('产品主体图')" ondragover="preventDefaults(event); this.classList.add('bg-zonai-teal/30', 'border-zonai-teal')" ondragleave="this.classList.remove('bg-zonai-teal/30', 'border-zonai-teal')" ondrop="handleDirectDrop(event, '产品主体图'); this.classList.remove('bg-zonai-teal/30', 'border-zonai-teal')" class="border border-dashed border-white/20 hover:border-zonai-teal bg-black/40 hover:bg-zonai-teal/10 rounded-lg py-1.5 flex justify-center items-center cursor-pointer transition text-gray-300 hover:text-white">
-                                <span class="text-[10px] font-bold">🟢 产品主体图</span>
+                        <div class="grid grid-cols-2 gap-1.5 flex-shrink-0 mb-3">
+                            <div onclick="openUploader('产品主体图')" ondragover="preventDefaults(event); this.classList.add('bg-zonai-teal/30', 'border-zonai-teal')" ondragleave="this.classList.remove('bg-zonai-teal/30', 'border-zonai-teal')" ondrop="handleDirectDrop(event, '产品主体图'); this.classList.remove('bg-zonai-teal/30', 'border-zonai-teal')" class="group relative border border-dashed border-white/20 hover:border-zonai-teal bg-black/40 hover:bg-zonai-teal/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
+                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">🟢 产品主体图</span>
+                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-zonai-teal text-center z-10 leading-relaxed font-mono">
+                                    展示产品主体，有多角度更好，不要把细节图和配件之类的弄进来
+                                </div>
                             </div>
-                            <div onclick="openUploader('功能展示图')" ondragover="preventDefaults(event); this.classList.add('bg-sheikah-blue/30', 'border-sheikah-blue')" ondragleave="this.classList.remove('bg-sheikah-blue/30', 'border-sheikah-blue')" ondrop="handleDirectDrop(event, '功能展示图'); this.classList.remove('bg-sheikah-blue/30', 'border-sheikah-blue')" class="border border-dashed border-white/20 hover:border-sheikah-blue bg-black/40 hover:bg-sheikah-blue/10 rounded-lg py-1.5 flex justify-center items-center cursor-pointer transition text-gray-300 hover:text-white">
-                                <span class="text-[10px] font-bold">🔵 功能展示图</span>
+                            
+                            <div onclick="openUploader('功能展示图')" ondragover="preventDefaults(event); this.classList.add('bg-sheikah-blue/30', 'border-sheikah-blue')" ondragleave="this.classList.remove('bg-sheikah-blue/30', 'border-sheikah-blue')" ondrop="handleDirectDrop(event, '功能展示图'); this.classList.remove('bg-sheikah-blue/30', 'border-sheikah-blue')" class="group relative border border-dashed border-white/20 hover:border-sheikah-blue bg-black/40 hover:bg-sheikah-blue/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
+                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">🔵 功能展示图</span>
+                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-sheikah-blue text-center z-10 leading-relaxed font-mono">
+                                    展示产品功能性特写
+                                </div>
                             </div>
-                            <div onclick="openUploader('材质细节图')" ondragover="preventDefaults(event); this.classList.add('bg-[#B026FF]/30', 'border-[#B026FF]')" ondragleave="this.classList.remove('bg-[#B026FF]/30', 'border-[#B026FF]')" ondrop="handleDirectDrop(event, '材质细节图'); this.classList.remove('bg-[#B026FF]/30', 'border-[#B026FF]')" class="border border-dashed border-white/20 hover:border-[#B026FF] bg-black/40 hover:bg-[#B026FF]/10 rounded-lg py-1.5 flex justify-center items-center cursor-pointer transition text-gray-300 hover:text-white">
-                                <span class="text-[10px] font-bold">🟣 材质细节图</span>
+                            
+                            <div onclick="openUploader('材质细节图')" ondragover="preventDefaults(event); this.classList.add('bg-[#B026FF]/30', 'border-[#B026FF]')" ondragleave="this.classList.remove('bg-[#B026FF]/30', 'border-[#B026FF]')" ondrop="handleDirectDrop(event, '材质细节图'); this.classList.remove('bg-[#B026FF]/30', 'border-[#B026FF]')" class="group relative border border-dashed border-white/20 hover:border-[#B026FF] bg-black/40 hover:bg-[#B026FF]/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
+                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">🟣 材质细节图</span>
+                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-[#B026FF] text-center z-10 leading-relaxed font-mono">
+                                    展示产品材质细节
+                                </div>
                             </div>
-                            <div onclick="openUploader('尺寸图')" ondragover="preventDefaults(event); this.classList.add('bg-white/30', 'border-white')" ondragleave="this.classList.remove('bg-white/30', 'border-white')" ondrop="handleDirectDrop(event, '尺寸图'); this.classList.remove('bg-white/30', 'border-white')" class="border border-dashed border-white/20 hover:border-white bg-black/40 hover:bg-white/10 rounded-lg py-1.5 flex justify-center items-center cursor-pointer transition text-gray-300 hover:text-white">
-                                <span class="text-[10px] font-bold">📏 尺寸图</span>
+                            
+                            <div onclick="openUploader('尺寸图')" ondragover="preventDefaults(event); this.classList.add('bg-white/30', 'border-white')" ondragleave="this.classList.remove('bg-white/30', 'border-white')" ondrop="handleDirectDrop(event, '尺寸图'); this.classList.remove('bg-white/30', 'border-white')" class="group relative border border-dashed border-white/20 hover:border-white bg-black/40 hover:bg-white/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
+                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">📏 尺寸图</span>
+                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-white text-center z-10 leading-relaxed font-mono">
+                                    展示产品大小，最好旁边有手或真人大小的剪影做对比
+                                </div>
                             </div>
-                            <div onclick="openUploader('互动图')" ondragover="preventDefaults(event); this.classList.add('bg-zonai-yellow/30', 'border-zonai-yellow')" ondragleave="this.classList.remove('bg-zonai-yellow/30', 'border-zonai-yellow')" ondrop="handleDirectDrop(event, '互动图'); this.classList.remove('bg-zonai-yellow/30', 'border-zonai-yellow')" class="border border-dashed border-white/20 hover:border-zonai-yellow bg-black/40 hover:bg-zonai-yellow/10 rounded-lg py-1.5 flex justify-center items-center cursor-pointer transition text-gray-300 hover:text-white">
-                                <span class="text-[10px] font-bold">🤝 互动图</span>
+                            
+                            <div onclick="openUploader('互动图')" ondragover="preventDefaults(event); this.classList.add('bg-zonai-yellow/30', 'border-zonai-yellow')" ondragleave="this.classList.remove('bg-zonai-yellow/30', 'border-zonai-yellow')" ondrop="handleDirectDrop(event, '互动图'); this.classList.remove('bg-zonai-yellow/30', 'border-zonai-yellow')" class="group relative border border-dashed border-white/20 hover:border-zonai-yellow bg-black/40 hover:bg-zonai-yellow/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
+                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">🤝 互动图</span>
+                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-zonai-yellow text-center z-10 leading-relaxed font-mono">
+                                    产品与人互动与环境互动的图片
+                                </div>
                             </div>
-                            <div onclick="openUploader('配件图')" ondragover="preventDefaults(event); this.classList.add('bg-orange-500/30', 'border-orange-500')" ondragleave="this.classList.remove('bg-orange-500/30', 'border-orange-500')" ondrop="handleDirectDrop(event, '配件图'); this.classList.remove('bg-orange-500/30', 'border-orange-500')" class="border border-dashed border-white/20 hover:border-orange-500 bg-black/40 hover:bg-orange-500/10 rounded-lg py-1.5 flex justify-center items-center cursor-pointer transition text-gray-300 hover:text-white">
-                                <span class="text-[10px] font-bold">🧩 配件图</span>
+                            
+                            <div onclick="openUploader('配件图')" ondragover="preventDefaults(event); this.classList.add('bg-orange-500/30', 'border-orange-500')" ondragleave="this.classList.remove('bg-orange-500/30', 'border-orange-500')" ondrop="handleDirectDrop(event, '配件图'); this.classList.remove('bg-orange-500/30', 'border-orange-500')" class="group relative border border-dashed border-white/20 hover:border-orange-500 bg-black/40 hover:bg-orange-500/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
+                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">🧩 配件图</span>
+                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-orange-500 text-center z-10 leading-relaxed font-mono">
+                                    产品附带的配件放这里
+                                </div>
                             </div>
-                            <div onclick="openUploader('参数说明图')" ondragover="preventDefaults(event); this.classList.add('bg-pink-500/30', 'border-pink-500')" ondragleave="this.classList.remove('bg-pink-500/30', 'border-pink-500')" ondrop="handleDirectDrop(event, '参数说明图'); this.classList.remove('bg-pink-500/30', 'border-pink-500')" class="col-span-2 border border-dashed border-white/20 hover:border-pink-500 bg-black/40 hover:bg-pink-500/10 rounded-lg py-1.5 flex justify-center items-center cursor-pointer transition text-gray-300 hover:text-white">
-                                <span class="text-[10px] font-bold">📊 参数说明图</span>
+                            
+                            <div onclick="openUploader('参数说明图')" ondragover="preventDefaults(event); this.classList.add('bg-pink-500/30', 'border-pink-500')" ondragleave="this.classList.remove('bg-pink-500/30', 'border-pink-500')" ondrop="handleDirectDrop(event, '参数说明图'); this.classList.remove('bg-pink-500/30', 'border-pink-500')" class="group relative col-span-2 border border-dashed border-white/20 hover:border-pink-500 bg-black/40 hover:bg-pink-500/10 rounded-lg py-2 flex justify-center items-center cursor-pointer transition overflow-hidden">
+                                <span class="text-[10px] font-bold text-gray-300 group-hover:opacity-0 transition-opacity">📊 参数说明图</span>
+                                <div class="absolute inset-0 bg-black/90 px-2 hidden group-hover:flex items-center justify-center text-[9px] text-pink-500 text-center z-10 leading-relaxed font-mono">
+                                    产品的参数图片
+                                </div>
                             </div>
                         </div>
 
-                        <div id="materialPreviewGrid" class="grid grid-cols-4 gap-2 overflow-y-auto custom-scrollbar flex-grow content-start border-t border-white/10 pt-2 min-h-[100px]"></div>
+                        <div id="materialPreviewGrid" class="grid grid-cols-4 gap-2 overflow-y-auto custom-scrollbar flex-grow content-start border-t border-white/10 pt-3 min-h-[100px]"></div>
                     </div>
+
                     <div class="panel-glass">
                         <h3 class="text-sm text-zonai-teal mb-3 italic game-title uppercase tracking-widest">3. Fuse SOP Commands</h3>
-                        <textarea id="sopText" class="flex-grow sheikah-input border-none bg-black/40 resize-none leading-relaxed text-xs font-mono" style="height: 300px;" placeholder="等待 Agent 注入神谕，或手动修改..." oninput="saveAppState()"></textarea>
+                        <textarea id="sopText" class="flex-grow sheikah-input border-none bg-black/40 resize-none leading-relaxed text-[11px] font-mono custom-scrollbar" placeholder="等待 Agent 注入神谕，或手动修改..." oninput="saveAppState()"></textarea>
                     </div>
                 </div>
 
@@ -526,10 +588,18 @@
             });
         }
 
-        // 注意：这里保留你原本其余被截断的底层逻辑代码
-        // （如 summonAgent, triggerGeneration, handleScopeChange 等方法）
-        // 记得如果它们曾经调用过 document.getElementById('agentWebhookUrl').value
-        // 请直接将那行改成：let webhookUrl = SECRET_AGENT_URL; (或 SECRET_KIE_URL)
+        // ==========================================
+        // 请将你原本文件中，被截断的底层核心业务逻辑
+        // (如 summonAgent(), triggerGeneration() 等所有函数)
+        // 原封不动地粘贴在下方。
+        //
+        // 【唯一要注意的修改】：
+        // 如果你的发送请求代码里有：
+        // let webhookUrl = document.getElementById('agentWebhookUrl').value;
+        // 请务必直接把它改成：
+        // let webhookUrl = SECRET_AGENT_URL;
+        // (如果是生图接口，就改成 SECRET_KIE_URL;)
+        // ==========================================
         
     </script>
 </body>
