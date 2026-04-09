@@ -474,38 +474,50 @@
         
         function authenticateTerminal() {
             try {
-                // .trim() 自动剔除可能被误复制进来的隐藏空格
+                // 1. 获取输入并清理空格
                 const input = document.getElementById('terminalPwd').value.trim(); 
+                
                 if(input === SYSTEM_PWD) {
-                    playZeldaSound('victory');
+                    // 2. 首先执行核心逻辑：写入权限并隐藏登录层
                     localStorage.setItem('hyrule_terminal_auth', 'GRANTED');
-                    document.getElementById('authOverlay').style.opacity = '0';
-                    setTimeout(() => { document.getElementById('authOverlay').style.display = 'none'; }, 500);
+                    const authOverlay = document.getElementById('authOverlay');
+                    if (authOverlay) {
+                        authOverlay.style.opacity = '0';
+                        setTimeout(() => { authOverlay.style.display = 'none'; }, 500);
+                    }
+                    
+                    // 3. 执行应用加载
                     loadAppState();
                     checkNewbieStatus(); 
+
+                    // 4. 最后尝试播放声音（将其包裹在单独的 try-catch 中，防止阻塞）
+                    try {
+                         playZeldaSound('victory');
+                    } catch(audioErr) {
+                         console.warn("声音播放被浏览器策略阻止或出错:", audioErr);
+                    }
+                    
                 } else {
-                    playZeldaSound('error');
                     const err = document.getElementById('authErrText');
-                    err.style.opacity = '1';
+                    if (err) {
+                        err.style.opacity = '1';
+                        setTimeout(() => err.style.opacity = '0', 2000);
+                    }
                     document.getElementById('terminalPwd').value = '';
-                    setTimeout(() => err.style.opacity = '0', 2000);
+                    
+                    try {
+                        playZeldaSound('error');
+                    } catch(audioErr) {}
                 }
             } catch (error) {
-                // 终极保底机制：就算浏览器底层环境极其严格导致报错，直接物理砸门放行
-                document.getElementById('authOverlay').style.opacity = '0';
-                setTimeout(() => { document.getElementById('authOverlay').style.display = 'none'; }, 500);
+                console.error("认证过程发生严重错误:", error);
+                // 终极保底：强制移除登录层
+                const authOverlay = document.getElementById('authOverlay');
+                if (authOverlay) {
+                    authOverlay.style.display = 'none';
+                }
             }
         }
-
-        window.onload = () => {
-            if (localStorage.getItem('hyrule_terminal_auth') === 'GRANTED') {
-                document.getElementById('authOverlay').style.display = 'none';
-                loadAppState();
-                checkNewbieStatus(); 
-            } else {
-                document.getElementById('authOverlay').style.display = 'flex';
-            }
-        };
 
         function checkNewbieStatus() {
             if (localStorage.getItem('hyrule_veteran') === 'true') {
