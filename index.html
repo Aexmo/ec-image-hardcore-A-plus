@@ -424,6 +424,10 @@
                     <div id="progressStatus" class="flex-grow status-box-enhanced font-mono text-xs space-y-4">
                         <div class="text-sheikah-blue flex items-center gap-2"><div class="w-2 h-2 bg-sheikah-blue animate-ping"></div><span>SYSTEM STATUS: CONNECTED</span></div>
                         <div id="logContent" class="text-sheikah-blue/60 leading-relaxed font-['PingFang SC']">等待左纳乌信号输入...</div>
+                        <div class="mt-4 pt-4 border-t border-sheikah-blue/20 text-[#00FF00] flex items-start gap-2 animate-[pulse_2s_ease-in-out_infinite]" style="text-shadow: 0 0 10px #00FF00;">
+    <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+    <span class="text-[10px] leading-relaxed font-['PingFang SC'] tracking-wide">请等待所有图片加载完毕后再进行重绘或编辑，以免截图失败影响评价系统。</span>
+</div>
                     </div>
                     <div class="master-sword-container"><img src="Weapon_Sword_070.png" id="staticSword" onerror="this.style.display='none'"></div>
                     <div class="mt-4">
@@ -1027,25 +1031,33 @@
                 <img src="${displayUrl}" crossorigin="anonymous">
                 <div class="slot-actions" style="flex-direction: column; gap: 8px; padding: 10px;">
                     <div class="flex items-center justify-between gap-2 w-full">
-                        <button onclick="openEditModal(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
-                            EDIT
-                        </button>
-                        <button onclick="openInpaintModal(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
-                            INPAINT
-                        </button>
-                        <button onclick="triggerGeneration(${idx})" class="flex-1 py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
-                            REDRAW
-                        </button>
+                        <div class="relative group flex-1">
+                            <button onclick="openEditModal(${idx})" class="w-full py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                                EDIT
+                            </button>
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-[140px] bg-black/95 text-[#00D4FF] text-[10px] text-center py-2 px-2 rounded-lg border border-[#00D4FF]/40 z-50 font-['PingFang SC'] leading-relaxed shadow-[0_0_15px_rgba(0,212,255,0.3)]">
+                                编辑提示词文字重绘图片
+                            </div>
+                        </div>
+                        
+                        <div class="relative group flex-1">
+                            <button onclick="openInpaintModal(${idx})" class="w-full py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                                INPAINT
+                            </button>
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-[140px] bg-black/95 text-[#00D4FF] text-[10px] text-center py-2 px-2 rounded-lg border border-[#00D4FF]/40 z-50 font-['PingFang SC'] leading-relaxed shadow-[0_0_15px_rgba(0,212,255,0.3)]">
+                                在图片的基础上画圈写文字修复细节重新绘图
+                            </div>
+                        </div>
+                        
+                        <div class="relative group flex-1">
+                            <button onclick="triggerGeneration(${idx})" class="w-full py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200">
+                                REDRAW
+                            </button>
+                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-[140px] bg-black/95 text-[#00D4FF] text-[10px] text-center py-2 px-2 rounded-lg border border-[#00D4FF]/40 z-50 font-['PingFang SC'] leading-relaxed shadow-[0_0_15px_rgba(0,212,255,0.3)]">
+                                总体没问题！氪金大佬直接抽卡
+                            </div>
+                        </div>
                     </div>
-                    <div class="w-full">
-                        <button onclick="downloadSingle(${idx})" class="w-full py-1.5 border border-[#00D4FF] text-[#00D4FF] bg-transparent rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#00D4FF]/20 transition-all duration-200 flex items-center justify-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            DOWNLOAD
-                        </button>
-                    </div>
-                </div>`;
         }
 
         async function downloadSingle(idx) { const img = imageSlots[idx]; if(!img) return; await performMasterSwordSlash(); try { const blob = await fetchImageBlobBypassCORS(img.url); const blobUrl = window.URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = blobUrl; a.download = `artifact_${idx}_${Date.now()}.jpg`; document.body.appendChild(a); a.click(); setTimeout(() => { window.URL.revokeObjectURL(blobUrl); document.body.removeChild(a); }, 500); } catch (e) { window.open(img.url, '_blank'); } }
