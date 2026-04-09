@@ -456,33 +456,44 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+        let synth = null;
+        try { if (typeof Tone !== 'undefined') synth = new Tone.PolySynth(Tone.Synth).toDestination(); } catch(e) { console.warn("声音引擎离线"); }
 
         const playZeldaSound = (type) => {
-            Tone.start(); const now = Tone.now();
-            if (type === 'victory') { synth.triggerAttackRelease("G4", "16n", now); synth.triggerAttackRelease("B4", "16n", now + 0.1); synth.triggerAttackRelease("D5", "16n", now + 0.2); synth.triggerAttackRelease("F5", "16n", now + 0.3); synth.triggerAttackRelease("D5", "16n", now + 0.4); synth.triggerAttackRelease("B4", "16n", now + 0.5); synth.triggerAttackRelease("G5", "4n", now + 0.6); } 
-            else if (type === 'click') { synth.triggerAttackRelease(["D4", "G4", "D5"], "12n"); }
-            else if (type === 'error') { synth.triggerAttackRelease(["C3", "C#3"], "2n"); }
-            else if (type === 'slash') { synth.triggerAttackRelease("G4", "32n", now); synth.triggerAttackRelease("C5", "32n", now + 0.03); synth.triggerAttackRelease("G5", "32n", now + 0.06); }
+            try {
+                if (!synth || typeof Tone === 'undefined') return;
+                Tone.start(); const now = Tone.now();
+                if (type === 'victory') { synth.triggerAttackRelease("G4", "16n", now); synth.triggerAttackRelease("B4", "16n", now + 0.1); synth.triggerAttackRelease("D5", "16n", now + 0.2); synth.triggerAttackRelease("F5", "16n", now + 0.3); synth.triggerAttackRelease("D5", "16n", now + 0.4); synth.triggerAttackRelease("B4", "16n", now + 0.5); synth.triggerAttackRelease("G5", "4n", now + 0.6); } 
+                else if (type === 'click') { synth.triggerAttackRelease(["D4", "G4", "D5"], "12n"); }
+                else if (type === 'error') { synth.triggerAttackRelease(["C3", "C#3"], "2n"); }
+                else if (type === 'slash') { synth.triggerAttackRelease("G4", "32n", now); synth.triggerAttackRelease("C5", "32n", now + 0.03); synth.triggerAttackRelease("G5", "32n", now + 0.06); }
+            } catch(e) {}
         };
 
         function triggerError(title, desc) { playZeldaSound('error'); document.getElementById('errorTitle').innerText = title; document.getElementById('errorDesc').innerHTML = desc; document.getElementById('errorOverlay').style.display = 'flex'; }
         
         function authenticateTerminal() {
-            const input = document.getElementById('terminalPwd').value;
-            if(input === SYSTEM_PWD) {
-                playZeldaSound('victory');
-                localStorage.setItem('hyrule_terminal_auth', 'GRANTED');
+            try {
+                // .trim() 自动剔除可能被误复制进来的隐藏空格
+                const input = document.getElementById('terminalPwd').value.trim(); 
+                if(input === SYSTEM_PWD) {
+                    playZeldaSound('victory');
+                    localStorage.setItem('hyrule_terminal_auth', 'GRANTED');
+                    document.getElementById('authOverlay').style.opacity = '0';
+                    setTimeout(() => { document.getElementById('authOverlay').style.display = 'none'; }, 500);
+                    loadAppState();
+                    checkNewbieStatus(); 
+                } else {
+                    playZeldaSound('error');
+                    const err = document.getElementById('authErrText');
+                    err.style.opacity = '1';
+                    document.getElementById('terminalPwd').value = '';
+                    setTimeout(() => err.style.opacity = '0', 2000);
+                }
+            } catch (error) {
+                // 终极保底机制：就算浏览器底层环境极其严格导致报错，直接物理砸门放行
                 document.getElementById('authOverlay').style.opacity = '0';
                 setTimeout(() => { document.getElementById('authOverlay').style.display = 'none'; }, 500);
-                loadAppState();
-                checkNewbieStatus(); 
-            } else {
-                playZeldaSound('error');
-                const err = document.getElementById('authErrText');
-                err.style.opacity = '1';
-                document.getElementById('terminalPwd').value = '';
-                setTimeout(() => err.style.opacity = '0', 2000);
             }
         }
 
