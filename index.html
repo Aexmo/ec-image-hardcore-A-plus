@@ -691,9 +691,38 @@
                     activeAgentTask = null; saveAppState(); 
                     playZeldaSound('victory'); overlay.classList.add('finished');
                     setTimeout(() => { overlay.classList.remove('show', 'finished'); progressBar.style.width = '0%'; kieBtn.disabled = false; kieBtn.classList.add('ready-to-fuse'); }, 2500); ref.off();
-                } else if (data.status === 'failed' || data.status === 'error') {
-                    clearInterval(progressInterval); overlay.classList.remove('show'); activeAgentTask = null; saveAppState(); 
-                    triggerError('AGENT FAILED', '远端智脑运行出错，任务终止。'); ref.off();
+               } else if (data.status === 'failed') {
+                    // 👇 从这里开始替换 👇
+                    activeKieTasks = activeKieTasks.filter(t => t.slot !== slotIdx); saveAppState();
+                    slot.classList.remove('standby'); slot.classList.add('failed'); 
+                    
+                    slot.innerHTML = `
+                        <div class="text-red-500 font-black text-sm font-mono uppercase z-10 flex flex-col items-center justify-center h-full w-full">
+                            <svg class="w-8 h-8 mb-2 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            GEN FAILED
+                        </div>
+                        <div class="slot-actions" style="flex-direction: column; gap: 8px; padding: 10px;">
+                            <div class="flex items-center justify-between gap-2 w-full">
+                                <div class="relative group flex-1">
+                                    <button onclick="openEditModal(${slotIdx})" class="w-full py-1.5 border border-red-500 text-red-500 bg-black/90 rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-red-500 hover:text-white transition-all duration-200">
+                                        EDIT
+                                    </button>
+                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-[140px] bg-black/95 text-red-500 text-[10px] text-center py-2 px-2 rounded-lg border border-red-500/40 z-50 font-['PingFang SC'] leading-relaxed shadow-[0_0_15px_rgba(239,68,68,0.4)]">
+                                        编辑提示词重新生成
+                                    </div>
+                                </div>
+                                <div class="relative group flex-1">
+                                    <button onclick="triggerGeneration(${slotIdx})" class="w-full py-1.5 border border-[#FFD700] text-[#FFD700] bg-black/90 rounded-md font-black tracking-widest uppercase text-[10px] hover:bg-[#FFD700] hover:text-black transition-all duration-200">
+                                        RETRY
+                                    </button>
+                                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-[140px] bg-black/95 text-[#FFD700] text-[10px] text-center py-2 px-2 rounded-lg border border-[#FFD700]/40 z-50 font-['PingFang SC'] leading-relaxed shadow-[0_0_15px_rgba(255,215,0,0.4)]">
+                                        网络波动？原样重试！
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`; 
+                    playZeldaSound('error'); ref.off();
+                    // 👆 到这里替换结束 👆
                 }
             });
         }
